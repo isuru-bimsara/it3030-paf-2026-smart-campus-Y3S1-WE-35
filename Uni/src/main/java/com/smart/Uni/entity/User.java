@@ -1,4 +1,4 @@
-//uni/src/main/java/com/smart/Uni/entity/User.java
+
 package com.smart.Uni.entity;
 
 import com.smart.Uni.enums.UserRole;
@@ -33,7 +33,7 @@ public class User {
 
     private String providerId;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String password; // BCrypt hashed
 
     @Enumerated(EnumType.STRING)
