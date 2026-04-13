@@ -82,5 +82,36 @@ public class UserService {
     }
 
 
+       @Transactional
+    public void deleteCurrentUser(String email) {
+        User user = userRepository.findByEmailAndDeletedFalse(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // optional: remove local uploaded image file
+        String picture = user.getPicture();
+        if (picture != null && picture.startsWith("/uploads/")) {
+            try {
+                String fileName = picture.replace("/uploads/", "");
+                Path filePath = Paths.get(uploadDir).resolve(fileName);
+                Files.deleteIfExists(filePath);
+            } catch (Exception ignored) {
+            }
+        }
+
+        // anonymize + deactivate + soft delete
+        String anon = "deleted_user_" + user.getId();
+        user.setName("Deleted User");
+        user.setPicture(null);
+        user.setProviderId(null);
+        user.setPassword(null);
+        user.setActive(false);
+        user.setDeleted(true);
+        user.setDeletedAt(java.time.LocalDateTime.now());
+
+        // if email must remain unique:
+        user.setEmail(anon + "@deleted.local");
+
+        userRepository.save(user);
+    
     
 }
