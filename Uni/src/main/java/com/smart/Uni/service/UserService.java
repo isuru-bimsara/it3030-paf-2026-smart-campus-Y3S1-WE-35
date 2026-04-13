@@ -66,7 +66,7 @@ public class UserService {
                 .build();
     }
 
-    public AuthResponse login(LoginRequest request) {
+     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
 
@@ -81,62 +81,6 @@ public class UserService {
                 .build();
     }
 
-    /** NEW: list all users for admin */
-    public List<UserResponse> getAllUsers() {
-        return userRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
 
-    /** NEW: update role for a specific user */
-    @Transactional
-    public UserResponse updateRole(Long id, UserRole role) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        user.setRole(role);
-        // return mapToResponse(userRepository.save(user));
-        User saved = userRepository.save(user);
-        notificationService.notifyRoleChanged(saved, role, "Admin");
-        return mapToResponse(saved);
-    }
-
-    /** NEW: update user profile (name and an optional image) */
-    @Transactional
-    public UserResponse updateProfile(String email, String name, MultipartFile file) throws IOException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        if (name != null && !name.trim().isEmpty()) {
-            user.setName(name);
-        }
-
-        if (file != null && !file.isEmpty()) {
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            // Generate unique filename to prevent collisions
-            String fileName = UUID.randomUUID().toString() + "_" + StringUtils.cleanPath(file.getOriginalFilename());
-            Path filePath = uploadPath.resolve(fileName);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            // Store the path that matches the WebConfig resource handler
-            user.setPicture("/uploads/" + fileName);
-        }
-
-        return mapToResponse(userRepository.save(user));
-    }
-
-    private UserResponse mapToResponse(User user) {
-        return UserResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .name(user.getName())
-                .picture(user.getPicture())
-                .role(user.getRole())
-                .createdAt(user.getCreatedAt())
-                .build();
-    }
+    
 }
