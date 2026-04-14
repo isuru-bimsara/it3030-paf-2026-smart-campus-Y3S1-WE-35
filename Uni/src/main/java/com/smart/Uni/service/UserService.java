@@ -81,6 +81,34 @@ public class UserService {
                 .build();
     }
 
+     @Transactional
+    public UserResponse updateProfile(String email, String name, MultipartFile file) throws IOException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (name != null && !name.trim().isEmpty()) {
+            user.setName(name);
+        }
+
+        if (file != null && !file.isEmpty()) {
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // Generate unique filename to prevent collisions
+            String fileName = UUID.randomUUID().toString() + "_" + StringUtils.cleanPath(file.getOriginalFilename());
+            Path filePath = uploadPath.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Store the path that matches the WebConfig resource handler
+            user.setPicture("/uploads/" + fileName);
+        }
+
+        return mapToResponse(userRepository.save(user));
+    }
+
+
 
        @Transactional
     public void deleteCurrentUser(String email) {
