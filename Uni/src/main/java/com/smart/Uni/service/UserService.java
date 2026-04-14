@@ -81,6 +81,65 @@ public class UserService {
                 .build();
     }
 
+     @Transactional
+    public UserResponse updateProfile(String email, String name, MultipartFile file) throws IOException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        if (name != null && !name.trim().isEmpty()) {
+            user.setName(name);
+        }
+
+        if (file != null && !file.isEmpty()) {
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // Generate unique filename to prevent collisions
+            String fileName = UUID.randomUUID().toString() + "_" + StringUtils.cleanPath(file.getOriginalFilename());
+            Path filePath = uploadPath.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Store the path that matches the WebConfig resource handler
+            user.setPicture("/uploads/" + fileName);
+        }
+
+        return mapToResponse(userRepository.save(user));
+    }
+
+
+
+       @Transactional
+    public void deleteCurrentUser(String email) {
+        User user = userRepository.findByEmailAndDeletedFalse(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // optional: remove local uploaded image file
+        String picture = user.getPicture();
+        if (picture != null && picture.startsWith("/uploads/")) {
+            try {
+                String fileName = picture.replace("/uploads/", "");
+                Path filePath = Paths.get(uploadDir).resolve(fileName);
+                Files.deleteIfExists(filePath);
+            } catch (Exception ignored) {
+            }
+        }
+
+        // anonymize + deactivate + soft delete
+        String anon = "deleted_user_" + user.getId();
+        user.setName("Deleted User");
+        user.setPicture(null);
+        user.setProviderId(null);
+        user.setPassword(null);
+        user.setActive(false);
+        user.setDeleted(true);
+        user.setDeletedAt(java.time.LocalDateTime.now());
+
+        // if email must remain unique:
+        user.setEmail(anon + "@deleted.local");
+
+        userRepository.save(user);
+    
     
 }
