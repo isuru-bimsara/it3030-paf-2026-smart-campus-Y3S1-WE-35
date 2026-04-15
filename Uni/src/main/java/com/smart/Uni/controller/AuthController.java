@@ -35,4 +35,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(ApiResponse.success(userService.login(request)));
     }
+
+      @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<String>> deleteCurrentUser(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        userService.deleteCurrentUser(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Profile deleted successfully"));
+    }
 }
