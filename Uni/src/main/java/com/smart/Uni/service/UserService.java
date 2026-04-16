@@ -1,3 +1,6 @@
+
+
+
 package com.smart.Uni.service;
 
 import com.smart.Uni.dto.request.LoginRequest;
@@ -9,20 +12,18 @@ import com.smart.Uni.enums.UserRole;
 import com.smart.Uni.repository.UserRepository;
 import com.smart.Uni.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.List;
-import java.util.UUID;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.*;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -37,14 +38,14 @@ public class UserService {
     private String uploadDir;
 
     public UserResponse getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailAndDeletedFalse(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return mapToResponse(user);
     }
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmailAndDeletedFalse(request.getEmail())) {
             throw new IllegalArgumentException("Email is already registered");
         }
 
@@ -54,6 +55,9 @@ public class UserService {
                 .provider("local")
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(UserRole.USER)
+                .active(true)
+                .deleted(false)
+                .banned(false)
                 .build();
 
         userRepository.save(user);
@@ -62,53 +66,105 @@ public class UserService {
         return AuthResponse.builder()
                 .token(token)
                 .user(mapToResponse(user))
+                .banned(false)
+                .message("Login successful")
                 .build();
     }
 
-     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+    public AuthResponse login(LoginRequest request) {
+        User user = userRepository.findByEmailAndDeletedFalse(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Invalid credentials");
         }
 
         String token = jwtTokenProvider.generateToken(user.getEmail());
+
+        if (user.isBanned()) {
+            String reason = (user.getBanReason() == null || user.getBanReason().isBlank())
+                    ? "Your account has been banned by admin."
+                    : user.getBanReason();
+
+            return AuthResponse.builder()
+                    .token(token) // allow login token
+                    .user(mapToResponse(user))
+                    .banned(true)
+                    .message(reason)
+                    .build();
+        }
+
         return AuthResponse.builder()
                 .token(token)
                 .user(mapToResponse(user))
+                .banned(false)
+                .message("Login successful")
                 .build();
     }
 
-     @Transactional
-    public UserResponse updateProfile(String email, String name, MultipartFile file) throws IOException {
-        User user = userRepository.findByEmail(email)
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findByDeletedFalse().stream().map(this::mapToResponse).toList();
+    }
+
+    @Transactional
+    public UserResponse updateRole(Long id, UserRole role) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setRole(role);
+        User saved = userRepository.save(user);
+        notificationService.notifyRoleChanged(saved, role, "Admin");
+        return mapToResponse(saved);
+    }
+
+    @Transactional
+    public UserResponse banUser(Long id, String reason) {
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        if (name != null && !name.trim().isEmpty()) {
-            user.setName(name);
+        if (user.getRole() == UserRole.ADMIN) {
+            throw new IllegalArgumentException("Admin user cannot be banned");
         }
+
+        user.setBanned(true);
+        user.setBanReason((reason == null || reason.isBlank()) ? "Your account has been banned by admin." : reason);
+        user.setBannedAt(LocalDateTime.now());
+
+        return mapToResponse(userRepository.save(user));
+    }
+
+    @Transactional
+    public UserResponse unbanUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        user.setBanned(false);
+        user.setBanReason(null);
+        user.setBannedAt(null);
+
+        return mapToResponse(userRepository.save(user));
+    }
+
+    @Transactional
+    public UserResponse updateProfile(String email, String name, MultipartFile file) throws IOException {
+        User user = userRepository.findByEmailAndDeletedFalse(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (name != null && !name.trim().isEmpty()) user.setName(name);
 
         if (file != null && !file.isEmpty()) {
             Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
+            if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
 
-            // Generate unique filename to prevent collisions
-            String fileName = UUID.randomUUID().toString() + "_" + StringUtils.cleanPath(file.getOriginalFilename());
+            String fileName = UUID.randomUUID() + "_" + StringUtils.cleanPath(file.getOriginalFilename());
             Path filePath = uploadPath.resolve(fileName);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            // Store the path that matches the WebConfig resource handler
             user.setPicture("/uploads/" + fileName);
         }
 
         return mapToResponse(userRepository.save(user));
     }
 
-
-        private UserResponse mapToResponse(User user) {
+    private UserResponse mapToResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -116,26 +172,25 @@ public class UserService {
                 .picture(user.getPicture())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
+                .banned(user.isBanned())
+                .banReason(user.getBanReason())
                 .build();
     }
 
-       @Transactional
+    @Transactional
     public void deleteCurrentUser(String email) {
         User user = userRepository.findByEmailAndDeletedFalse(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // optional: remove local uploaded image file
         String picture = user.getPicture();
         if (picture != null && picture.startsWith("/uploads/")) {
             try {
                 String fileName = picture.replace("/uploads/", "");
                 Path filePath = Paths.get(uploadDir).resolve(fileName);
                 Files.deleteIfExists(filePath);
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
         }
 
-        // anonymize + deactivate + soft delete
         String anon = "deleted_user_" + user.getId();
         user.setName("Deleted User");
         user.setPicture(null);
@@ -143,12 +198,8 @@ public class UserService {
         user.setPassword(null);
         user.setActive(false);
         user.setDeleted(true);
-        user.setDeletedAt(java.time.LocalDateTime.now());
-
-        // if email must remain unique:
+        user.setDeletedAt(LocalDateTime.now());
         user.setEmail(anon + "@deleted.local");
-
         userRepository.save(user);
-    
-    
+    }
 }
