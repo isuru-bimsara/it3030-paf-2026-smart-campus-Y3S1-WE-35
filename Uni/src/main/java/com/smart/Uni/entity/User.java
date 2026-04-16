@@ -43,4 +43,24 @@ public class User {
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    
+    // soft delete
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
+
+    private LocalDateTime deletedAt;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
+
+    // NEW: ban
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean banned = false;
+
+    private String banReason;
+    private LocalDateTime bannedAt;
 }
