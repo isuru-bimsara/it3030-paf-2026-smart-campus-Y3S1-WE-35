@@ -14,4 +14,6 @@ public class UserResponse {
     private String picture;
     private UserRole role;
     private LocalDateTime createdAt;
+    private boolean banned;
+    private String banReason;
 }
