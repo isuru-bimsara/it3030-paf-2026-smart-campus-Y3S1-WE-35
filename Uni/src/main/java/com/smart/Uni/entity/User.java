@@ -1,4 +1,3 @@
-
 package com.smart.Uni.entity;
 
 import com.smart.Uni.enums.UserRole;
@@ -25,26 +24,22 @@ public class User {
     private String name;
     private String picture;
 
-    /**
-     * "google" for OAuth users, "local" for email/password users.
-     */
     @Builder.Default
     private String provider = "local";
 
     private String providerId;
 
     @Column(nullable = true)
-    private String password; // BCrypt hashed
+    private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     @Builder.Default
     private UserRole role = UserRole.USER;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    
     // soft delete
     @Column(nullable = false)
     @Builder.Default
