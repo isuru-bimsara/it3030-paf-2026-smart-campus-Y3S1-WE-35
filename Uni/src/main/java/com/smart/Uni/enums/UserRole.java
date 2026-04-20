@@ -1,2 +1,2 @@
 package com.smart.Uni.enums;
-public enum UserRole { USER, ADMIN, TECHNICIAN }
+public enum UserRole { USER, ADMIN, TECHNICIAN, OPERATION_MANAGER }
