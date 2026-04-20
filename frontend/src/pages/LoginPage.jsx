@@ -1,44 +1,82 @@
 
 
-
-//frontend/src/pages/LoginPage.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { authApi } from "../api/auth";
-import { 
-  Mail, 
-  Lock, 
-  ArrowRight, 
-  Loader2, 
-  ShieldCheck, 
-  AlertCircle 
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  Loader2,
+  ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 
 export default function LoginPage() {
   const { loginWithCredentials } = useAuth();
   const navigate = useNavigate();
+
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+
     try {
-      const user = await loginWithCredentials(form.email, form.password);
-      switch (user.role.toLowerCase()) {
-        case "admin": navigate("/admin/dashboard"); break;
-        case "user": navigate("/user/dashboard"); break;
-        case "technician": navigate("/tech/dashboard"); break;
-        default: navigate("/login");
+      // IMPORTANT:
+      // loginWithCredentials should return user object.
+      // If your context returns extra fields (banned/message), this code handles both.
+      const result = await loginWithCredentials(form.email, form.password);
+
+      // support both return shapes:
+      // 1) result = user
+      // 2) result = { user, banned, message }
+      const user = result?.user ? result.user : result;
+      const banned = Boolean(result?.banned ?? user?.banned);
+      const bannedReason =
+        result?.message || user?.banReason || "Your account has been banned by admin.";
+
+      if (!user) {
+        throw new Error("Login response is invalid.");
+      }
+
+      // if banned -> redirect to banned page
+      if (banned) {
+        localStorage.setItem("bannedReason", bannedReason);
+        navigate("/banned");
+        return;
+      }
+
+      // normal role routing
+      switch ((user.role || "").toLowerCase()) {
+        case "admin":
+          navigate("/admin/dashboard");
+          break;
+        case "user":
+          navigate("/user/dashboard");
+          break;
+        case "technician":
+          navigate("/tech/dashboard");
+          break;
+        case "operation_manager":
+          navigate("/operation-manager/dashboard");
+          break;
+        default:
+          navigate("/");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid credentials");
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Invalid credentials"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -46,7 +84,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-white font-sans text-slate-900">
-      {/* LEFT SIDE: Visual/Branding Panel (Hidden on mobile) */}
+      {/* LEFT SIDE */}
       <div className="hidden lg:flex lg:w-1/2 bg-indigo-600 relative overflow-hidden items-center justify-center p-12">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/circuit-board.png')]"></div>
         <div className="z-10 max-w-lg text-center">
@@ -57,24 +95,28 @@ export default function LoginPage() {
             Secure Resource Management
           </h2>
           <p className="text-indigo-100 text-lg font-medium leading-relaxed">
-            Everything you need to manage support tickets, maintenance requests, and team assets in one unified workspace.
+            Everything you need to manage support tickets, maintenance requests,
+            and team assets in one unified workspace.
           </p>
           <div className="mt-12 grid grid-cols-2 gap-4 text-left">
-            {['Real-time Tracking', 'Instant Support', 'Team Analytics', 'Mobile Ready'].map((feat) => (
-               <div key={feat} className="flex items-center gap-2 text-indigo-200 text-sm font-semibold">
-                 <div className="w-1.5 h-1.5 bg-indigo-300 rounded-full" /> {feat}
-               </div>
-            ))}
+            {["Real-time Tracking", "Instant Support", "Team Analytics", "Mobile Ready"].map(
+              (feat) => (
+                <div
+                  key={feat}
+                  className="flex items-center gap-2 text-indigo-200 text-sm font-semibold"
+                >
+                  <div className="w-1.5 h-1.5 bg-indigo-300 rounded-full" /> {feat}
+                </div>
+              )
+            )}
           </div>
         </div>
-        {/* Decorative Circles */}
         <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-500 rounded-full blur-3xl opacity-50"></div>
       </div>
 
-      {/* RIGHT SIDE: Login Form */}
+      {/* RIGHT SIDE */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-20 bg-slate-50/50">
         <div className="w-full max-w-[440px] space-y-8">
-          
           <div className="space-y-2">
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">
               Sign In
@@ -118,7 +160,10 @@ export default function LoginPage() {
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
                     Password
                   </label>
-                  <Link to="/forgot-password" size="sm" className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700">
+                  <Link
+                    to="/forgot-password"
+                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700"
+                  >
                     Forgot Password?
                   </Link>
                 </div>
@@ -147,7 +192,8 @@ export default function LoginPage() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Sign In <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    Sign In{" "}
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
@@ -166,10 +212,10 @@ export default function LoginPage() {
               onClick={authApi.loginWithGoogle}
               className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3.5 rounded-2xl transition-all shadow-sm flex items-center justify-center gap-3 active:scale-[0.98]"
             >
-              <img 
-                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-                className="w-5 h-5" 
-                alt="Google" 
+              <img
+                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                className="w-5 h-5"
+                alt="Google"
               />
               Google Account
             </button>
