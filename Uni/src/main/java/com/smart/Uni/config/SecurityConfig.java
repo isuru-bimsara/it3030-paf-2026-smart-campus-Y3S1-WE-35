@@ -1,5 +1,7 @@
+
 package com.smart.Uni.config;
 
+import com.smart.Uni.security.BannedUserFilter;
 import com.smart.Uni.security.JwtAuthenticationFilter;
 import com.smart.Uni.security.OAuth2AuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
@@ -16,9 +18,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.*;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -28,6 +34,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    private final BannedUserFilter bannedUserFilter;
 
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
@@ -50,21 +57,32 @@ public class SecurityConfig {
                 // ✅ AUTHORIZATION RULES
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public endpoints
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/uploads/**").permitAll() // allow images
-
+                        // These MUST come before /api/auth/**
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/auth/me").authenticated()
 
-                        // ✅ IMPORTANT FIX (allow all resource CRUD for now)
-                        .requestMatchers("/api/resources/**").permitAll()
+                        // Public endpoints
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
 
-                        // Role-based endpoints
+                        // Resource READ is open to all authenticated users (users need to browse resources)
+                        .requestMatchers(HttpMethod.GET, "/api/resources/**").authenticated()
+                        // Resource WRITE/DELETE requires OPERATION_MANAGER (defence-in-depth; @PreAuthorize also guards)
+                        .requestMatchers(HttpMethod.POST, "/api/resources/**").hasRole("OPERATION_MANAGER")
+                        .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasRole("OPERATION_MANAGER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasRole("OPERATION_MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/resources/**").hasRole("OPERATION_MANAGER")
+
+                        // Booking management (approve/reject/all) — guarded via @PreAuthorize on methods
+                        .requestMatchers("/api/bookings/**").authenticated()
+
+                        // Operation Manager dedicated endpoints
+                        .requestMatchers("/api/operation-manager/**").hasRole("OPERATION_MANAGER")
+
+                        // Admin-only endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/technician/**").hasAnyRole("ADMIN", "TECHNICIAN")
 
-                        .requestMatchers("/api/bookings/**").authenticated()
                         // Everything else
                         .anyRequest().authenticated()
                 )
@@ -74,36 +92,40 @@ public class SecurityConfig {
                         oauth2.successHandler(oAuth2AuthenticationSuccessHandler)
                 )
 
-                // ✅ JWT FILTER
+                // ✅ JWT filter first
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
-                // Fix H2 console issue (optional)
+                // ✅ Ban-check filter after JWT (needs authenticated principal)
+                .addFilterAfter(bannedUserFilter, JwtAuthenticationFilter.class)
+
+                // Optional for H2 console / frames
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
         return http.build();
     }
 
-    // ✅ CORS CONFIG
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+        // trim spaces in comma-separated origins
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+
+        config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
-
-        // IMPORTANT for file upload
         config.setExposedHeaders(List.of("Authorization"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
         return source;
     }
 
-     @Bean
+    @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
