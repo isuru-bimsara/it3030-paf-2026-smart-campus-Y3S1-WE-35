@@ -3,10 +3,10 @@ package com.smart.Uni.controller;
 
 import com.smart.Uni.dto.response.ApiResponse;
 import com.smart.Uni.dto.response.UserResponse;
-import com.smart.Uni.enums.BookingStatus;
+// import com.smart.Uni.enums.BookingStatus;
 import com.smart.Uni.enums.UserRole;
-import com.smart.Uni.repository.BookingRepository;
-import com.smart.Uni.repository.TicketRepository;
+// import com.smart.Uni.repository.BookingRepository;
+// import com.smart.Uni.repository.TicketRepository;
 import com.smart.Uni.repository.UserRepository;
 import com.smart.Uni.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +28,8 @@ public class AdminController {
 
     private final UserService userService;
     private final UserRepository userRepository;
-    private final BookingRepository bookingRepository;
-    private final TicketRepository ticketRepository;
+    // private final BookingRepository bookingRepository;
+    // private final TicketRepository ticketRepository;
 
     // NEW: ban user
     @PatchMapping("/users/{id}/ban")
