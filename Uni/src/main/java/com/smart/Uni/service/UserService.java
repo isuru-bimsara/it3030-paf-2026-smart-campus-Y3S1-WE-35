@@ -1,6 +1,4 @@
 
-
-
 package com.smart.Uni.service;
 
 import com.smart.Uni.dto.request.LoginRequest;
@@ -162,6 +160,23 @@ public class UserService {
         }
 
         return mapToResponse(userRepository.save(user));
+    }
+
+    @Transactional
+    public void changePassword(String email, String currentPassword, String newPassword) {
+        User user = userRepository.findByEmailAndDeletedFalse(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (user.getProvider() != null && user.getProvider().equals("google")) {
+            throw new IllegalArgumentException("Accounts linked with Google cannot change password here.");
+        }
+
+        if (user.getPassword() == null || !passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 
     private UserResponse mapToResponse(User user) {
