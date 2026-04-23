@@ -1,4 +1,3 @@
-
 package com.smart.Uni.config;
 
 import com.smart.Uni.security.BannedUserFilter;
@@ -41,64 +40,37 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
         http
-                // ✅ CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // ✅ Disable CSRF (for API)
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // ✅ Stateless (JWT)
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-
-                // ✅ AUTHORIZATION RULES
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-
-                        // These MUST come before /api/auth/**
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/auth/me").authenticated()
 
-                        // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/uploads/**").permitAll()
 
-                        // Resource READ is open to all authenticated users (users need to browse resources)
+                        // static upload files
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+
                         .requestMatchers(HttpMethod.GET, "/api/resources/**").authenticated()
-                        // Resource WRITE/DELETE requires OPERATION_MANAGER (defence-in-depth; @PreAuthorize also guards)
                         .requestMatchers(HttpMethod.POST, "/api/resources/**").hasRole("OPERATION_MANAGER")
                         .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasRole("OPERATION_MANAGER")
                         .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasRole("OPERATION_MANAGER")
                         .requestMatchers(HttpMethod.PATCH, "/api/resources/**").hasRole("OPERATION_MANAGER")
 
-                        // Booking management (approve/reject/all) — guarded via @PreAuthorize on methods
                         .requestMatchers("/api/bookings/**").authenticated()
+                        .requestMatchers("/api/tickets/**").authenticated()
 
-                        // Operation Manager dedicated endpoints
                         .requestMatchers("/api/operation-manager/**").hasRole("OPERATION_MANAGER")
-
-                        // Admin-only endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/technician/**").hasAnyRole("ADMIN", "TECHNICIAN")
 
-                        // Everything else
                         .anyRequest().authenticated()
                 )
-
-                // ✅ GOOGLE LOGIN
-                .oauth2Login(oauth2 ->
-                        oauth2.successHandler(oAuth2AuthenticationSuccessHandler)
-                )
-
-                // ✅ JWT filter first
+                .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2AuthenticationSuccessHandler))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-
-                // ✅ Ban-check filter after JWT (needs authenticated principal)
                 .addFilterAfter(bannedUserFilter, JwtAuthenticationFilter.class)
-
-                // Optional for H2 console / frames
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
         return http.build();
@@ -107,8 +79,6 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
-        // trim spaces in comma-separated origins
         List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
