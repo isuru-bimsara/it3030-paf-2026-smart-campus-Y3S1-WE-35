@@ -1,5 +1,6 @@
 package com.smart.Uni.controller;
 
+import com.smart.Uni.dto.request.PasswordChangeRequest;
 import com.smart.Uni.dto.response.ApiResponse;
 import com.smart.Uni.dto.response.UserResponse;
 import com.smart.Uni.service.UserService;
@@ -32,5 +33,13 @@ public class UserController {
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body(ApiResponse.error("Error uploading image: " + e.getMessage()));
         }
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<ApiResponse<String>> changePassword(
+            @RequestBody PasswordChangeRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        userService.changePassword(userDetails.getUsername(), request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.success("Password changed successfully"));
     }
 }
