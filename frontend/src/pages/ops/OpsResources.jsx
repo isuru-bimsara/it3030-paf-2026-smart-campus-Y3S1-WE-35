@@ -539,8 +539,11 @@ const EMPTY_FORM = {
 const TYPE_LABELS = {
   LECTURE_HALL: "Lecture Hall",
   LAB: "Lab",
+  SPORTS_FACILITY: "Sports Facility",
   MEETING_ROOM: "Meeting Room",
+  AUDITORIUM: "Auditorium",
   EQUIPMENT: "Equipment",
+  OTHER: "Other",
 };
 
 const STATUS_STYLES = {
@@ -627,10 +630,13 @@ export default function OpsResources() {
       const imageUrl = await uploadImage();
       const isEquip = form.type === "EQUIPMENT";
       const payload = {
-        ...form,
-        imageUrl,
+        name: form.name.trim(),
+        type: form.type,
         capacity: Number(form.capacity) || 0,
-        location: isEquip ? null : form.location || null,
+        status: form.status,
+        description: form.description?.trim() || null,
+        imageUrl: imageUrl || null,
+        location: isEquip ? null : form.location?.trim() || null,
       };
 
       if (form.id) {
@@ -641,7 +647,11 @@ export default function OpsResources() {
       closeModal();
       fetchResources();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to save resource.");
+      setError(
+        err.response?.data?.message ||
+          (typeof err.response?.data === "string" ? err.response.data : null) ||
+          "Failed to save resource.",
+      );
     } finally {
       setSaving(false);
     }

@@ -259,16 +259,7 @@ public class NotificationService {
     @Transactional
     public void markAllAsRead(String email) {
         User user = findUserByEmail(email);
-        int updated = notificationRepository.markAllAsReadByUserId(user.getId());
-        System.out.println("Marked " + updated + " notifications as read for userId=" + user.getId());
-    }
-
-    @Transactional
-    public void markAllAsRead(String email) {
-        User user = findUserByEmail(email);
-        List<Notification> unread = notificationRepository.findByUserIdAndReadFalse(user.getId());
-        unread.forEach(n -> n.setRead(true));
-        notificationRepository.saveAll(unread);
+        notificationRepository.markAllAsReadByUserId(user.getId());
     }
 
     @Transactional
