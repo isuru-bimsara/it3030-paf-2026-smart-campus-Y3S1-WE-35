@@ -300,6 +300,7 @@ import {
   Circle,
   BellOff,
   Check,
+  Sparkles,
 } from "lucide-react";
 import useNotificationClick from "../../utils/useNotificationClick";
 
@@ -350,6 +351,43 @@ export default function UserNotifications() {
     [notifications],
   );
 
+  const notificationStats = useMemo(() => {
+    const ticketCount = notifications.filter((n) =>
+      String(n.type || "").startsWith("TICKET"),
+    ).length;
+    const bookingCount = notifications.filter((n) =>
+      String(n.type || "").startsWith("BOOKING"),
+    ).length;
+    const readCount = notifications.filter((n) => n.read).length;
+
+    return [
+      {
+        label: "Unread",
+        value: unreadCount,
+        detail: "Fresh updates waiting for your attention",
+        icon: Bell,
+      },
+      {
+        label: "Ticket Alerts",
+        value: ticketCount,
+        detail: "Support-related updates and activity",
+        icon: Ticket,
+      },
+      {
+        label: "Booking Alerts",
+        value: bookingCount,
+        detail: "Reservation approvals and booking changes",
+        icon: Calendar,
+      },
+      {
+        label: "Read",
+        value: readCount,
+        detail: "Notifications already reviewed",
+        icon: CheckCheck,
+      },
+    ];
+  }, [notifications, unreadCount]);
+
   // Grouping logic for "Real World" feel
   const grouped = useMemo(() => {
     const sections = { Today: [], Yesterday: [], Older: [] };
@@ -387,40 +425,159 @@ export default function UserNotifications() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-            Notifications
-            {unreadCount > 0 && (
-              <span className="bg-indigo-600 text-white text-[11px] px-2.5 py-0.5 rounded-full shadow-lg shadow-indigo-200">
-                {unreadCount} NEW
-              </span>
-            )}
-          </h1>
-          <p className="text-slate-500 text-sm font-medium mt-1">
-            Stay updated with your bookings and ticket status.
-          </p>
+    <div className="max-w-7xl mx-auto space-y-8 pb-16">
+      <style>{`
+        @keyframes notificationFadeUp {
+          0% { opacity: 0; transform: translate3d(0, 16px, 0); }
+          100% { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+
+        @keyframes notificationFloat {
+          0%, 100% { transform: translate3d(0, 0, 0); }
+          50% { transform: translate3d(0, -8px, 0); }
+        }
+
+        @keyframes notificationGradientStream {
+          0% { transform: translateX(-20%); opacity: 0.55; }
+          50% { transform: translateX(18%); opacity: 1; }
+          100% { transform: translateX(-20%); opacity: 0.55; }
+        }
+
+        .notification-fade-up {
+          animation: notificationFadeUp 700ms ease-out both;
+        }
+
+        .notification-float {
+          animation: notificationFloat 8s ease-in-out infinite;
+        }
+
+        .notification-gradient-line {
+          animation: notificationGradientStream 8.5s ease-in-out infinite;
+        }
+      `}</style>
+
+      <section className="relative overflow-hidden rounded-[38px] border border-white/60 bg-[linear-gradient(135deg,#faf5ff_0%,#f3e8ff_40%,#eef2ff_100%)] px-6 py-8 shadow-[0_30px_95px_rgba(124,58,237,0.14)] md:px-8 xl:px-10">
+        <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-violet-300/30 blur-3xl" />
+        <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-purple-300/25 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-10 left-1/3 h-56 w-56 rounded-full bg-fuchsia-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute right-24 bottom-0 h-44 w-44 rounded-full bg-indigo-300/20 blur-3xl" />
+
+        <div className="relative z-10 grid gap-8 xl:grid-cols-[1.08fr_0.92fr] xl:items-end">
+          <div className="notification-fade-up space-y-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200/80 bg-white/80 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-violet-700 shadow-sm backdrop-blur-xl">
+                <Bell className="h-3.5 w-3.5" />
+                Premium Notification Center
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-violet-700 shadow-[0_14px_34px_rgba(124,58,237,0.10)] backdrop-blur-xl">
+                SMART ALERTS
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-sm font-bold tracking-[0.08em] text-violet-600">
+                Stay connected to everything important
+              </p>
+              <h1 className="max-w-3xl text-4xl font-black tracking-[-0.06em] text-slate-950 md:text-5xl xl:text-6xl">
+                Every update,
+                <span className="block bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_42%,#8B5CF6_72%,#A855F7_100%)] bg-clip-text tracking-[-0.05em] text-transparent">
+                  beautifully organized
+                </span>
+              </h1>
+              <p className="max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
+                Follow booking approvals, support activity, role changes, and
+                every system update from one polished notification workspace.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {notificationStats.map((stat) => {
+                const Icon = stat.icon;
+                return (
+                  <div
+                    key={stat.label}
+                    className="rounded-3xl border border-white/50 bg-white/70 p-5 shadow-[0_20px_60px_rgba(124,58,237,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(124,58,237,0.18)]"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="rounded-2xl bg-[linear-gradient(135deg,#ede9fe_0%,#f5f3ff_100%)] p-3 text-violet-700">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <span className="rounded-full border border-violet-100 bg-violet-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-600">
+                        Live
+                      </span>
+                    </div>
+                    <p className="mt-5 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+                      {stat.label}
+                    </p>
+                    <p className="mt-2 text-4xl font-black tracking-tight text-slate-950">
+                      {stat.value}
+                    </p>
+                    <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+                      {stat.detail}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="h-[6px] overflow-hidden rounded-full bg-white/60 shadow-inner">
+              <div className="notification-gradient-line h-full w-[55%] rounded-full bg-[linear-gradient(90deg,#6D28D9_0%,#7C3AED_35%,#8B5CF6_70%,#A855F7_100%)] shadow-[0_0_30px_rgba(124,58,237,0.35)]" />
+            </div>
+          </div>
+
+          <div className="notification-float notification-fade-up rounded-[36px] border border-white/60 bg-white/70 p-5 shadow-[0_28px_80px_rgba(124,58,237,0.14)] backdrop-blur-2xl" style={{ animationDelay: "120ms" }}>
+            <div className="rounded-[30px] bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_42%,#8B5CF6_74%,#A855F7_100%)] p-6 text-white shadow-[0_22px_56px_rgba(124,58,237,0.28)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-violet-100">
+                    Notification Snapshot
+                  </p>
+                  <h2 className="mt-3 text-2xl font-black tracking-tight">
+                    {unreadCount > 0
+                      ? "You have fresh updates waiting"
+                      : "You are fully caught up right now"}
+                  </h2>
+                </div>
+                <div className="rounded-2xl bg-white/15 p-3 backdrop-blur">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+              </div>
+
+              <div className="mt-8 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-white/15 px-4 py-4 backdrop-blur">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-100">
+                    Today
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-white/95">
+                    {grouped.Today.length} alerts
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white/15 px-4 py-4 backdrop-blur">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-100">
+                    New
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-white/95">
+                    {unreadCount} unread
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-white/90">
+                Tap any card to open the related page instantly
+                <CheckCheck className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
         </div>
+      </section>
 
-        {unreadCount > 0 && (
-          <button
-            onClick={handleMarkAllRead}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-indigo-600 hover:bg-indigo-50 bg-white border border-slate-200 rounded-xl transition-all shadow-sm"
-          >
-            <CheckCheck className="w-4 h-4" />
-            Mark all read
-          </button>
-        )}
-      </div>
-
-      {/* NOTIFICATION LIST */}
       <div className="space-y-8">
         {loading && notifications.length === 0 ? (
-          <div className="py-20 text-center flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">
+          <div className="rounded-[32px] border border-white/60 bg-white/72 px-8 py-20 text-center shadow-[0_20px_60px_rgba(124,58,237,0.10)] backdrop-blur-xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-violet-50">
+              <div className="h-8 w-8 rounded-full border-4 border-violet-100 border-t-violet-600 animate-spin" />
+            </div>
+            <p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">
               Fetching updates...
             </p>
           </div>
@@ -428,19 +585,19 @@ export default function UserNotifications() {
           Object.entries(grouped).map(
             ([title, items]) =>
               items.length > 0 && (
-                <div key={title} className="space-y-3">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2">
+                <div key={title} className="space-y-4">
+                  <h3 className="px-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
                     {title}
                   </h3>
 
-                  <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                  <div className="overflow-hidden rounded-[28px] border border-white/60 bg-white/72 shadow-[0_20px_60px_rgba(124,58,237,0.10)] backdrop-blur-xl">
                     <div className="divide-y divide-slate-100">
                       {items.map((n) => (
                         <div
                           key={n.id}
                           onClick={() => handleNotificationClick(n)}
-                          className={`group relative p-5 transition-all flex gap-4 items-start cursor-pointer hover:bg-slate-50/80 ${
-                            !n.read ? "bg-indigo-50/30" : "bg-white"
+                          className={`group relative flex cursor-pointer items-start gap-4 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:bg-violet-50/60 ${
+                            !n.read ? "bg-indigo-50/30" : "bg-white/80"
                           }`}
                         >
                           {/* New Status Vertical Bar */}
@@ -452,8 +609,8 @@ export default function UserNotifications() {
                           <div
                             className={`p-3 rounded-xl transition-all ${
                               !n.read
-                                ? "bg-white shadow-sm border border-indigo-100 scale-105"
-                                : "bg-slate-50 border border-transparent"
+                                ? "scale-105 border border-indigo-100 bg-white shadow-sm"
+                                : "border border-transparent bg-slate-50"
                             }`}
                           >
                             {getIconByType(n.type, n.read)}
@@ -474,7 +631,7 @@ export default function UserNotifications() {
 
                               {/* Read/Unread Badge */}
                               {n.read ? (
-                                <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md uppercase">
+                                <span className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-400">
                                   <Check className="w-3 h-3" /> Read
                                 </span>
                               ) : (
@@ -508,14 +665,14 @@ export default function UserNotifications() {
         )}
 
         {notifications.length === 0 && !loading && (
-          <div className="py-24 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BellOff className="w-8 h-8 text-slate-300" />
+          <div className="rounded-[32px] border-2 border-dashed border-violet-100 bg-white/72 py-24 text-center shadow-[0_20px_60px_rgba(124,58,237,0.10)] backdrop-blur-xl">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-violet-50">
+              <BellOff className="w-8 h-8 text-violet-300" />
             </div>
-            <h2 className="text-slate-800 font-bold text-lg">
+            <h2 className="text-lg font-bold text-slate-800">
               No notifications yet
             </h2>
-            <p className="text-slate-500 text-sm">
+            <p className="text-sm text-slate-500">
               We'll let you know when something happens.
             </p>
           </div>
