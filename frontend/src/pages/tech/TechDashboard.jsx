@@ -44,6 +44,23 @@ const STATUS_STYLES = {
   REJECTED: "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700",
 };
 
+const HERO_IMAGE_BY_CATEGORY = {
+  ELECTRICAL:
+    "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1400&q=80",
+  PLUMBING:
+    "https://images.unsplash.com/photo-1621905252472-e8f6f2f7d7b9?auto=format&fit=crop&w=1400&q=80",
+  HVAC:
+    "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1400&q=80",
+  IT:
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1400&q=80",
+  CLEANING:
+    "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1400&q=80",
+  OTHER:
+    "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=1400&q=80",
+  DEFAULT:
+    "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1400&q=80",
+};
+
 const extractPayload = (response) => {
   if (Array.isArray(response?.data)) return response.data;
   return response?.data?.data ?? response?.data ?? [];
@@ -75,6 +92,9 @@ const formatDateTime = (value) =>
     minute: "2-digit",
   });
 
+const getTechHeroImage = (category) =>
+  HERO_IMAGE_BY_CATEGORY[category] || HERO_IMAGE_BY_CATEGORY.DEFAULT;
+
 function TechTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
 
@@ -99,6 +119,7 @@ function TechTooltip({ active, payload, label }) {
 }
 
 function TechGlassPanel({
+  imageUrl,
   title,
   subtitle,
   eyebrow,
@@ -116,7 +137,19 @@ function TechGlassPanel({
       <div className="absolute right-5 top-8 h-24 w-24 rounded-full bg-fuchsia-300/25 blur-2xl" />
       <div className="absolute bottom-6 left-8 h-16 w-16 rounded-[24px] border border-white/60 bg-white/40 shadow-sm" />
       <div className="absolute right-8 top-10 h-14 w-28 rounded-full border border-violet-200/70 bg-white/55 shadow-sm" />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.12)_0%,rgba(124,58,237,0.06)_34%,rgba(91,33,182,0.82)_100%)]" />
+
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={title}
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={(event) => {
+            event.currentTarget.style.display = "none";
+          }}
+        />
+      ) : null}
+
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(124,58,237,0.08)_34%,rgba(91,33,182,0.84)_100%)]" />
 
       <div className="absolute inset-x-0 top-0 flex items-center justify-between p-4 md:p-5">
         <span className="rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-700 shadow-sm backdrop-blur">
@@ -449,6 +482,7 @@ export default function TechDashboard() {
           >
             <div className="rounded-[32px] border border-white/80 bg-white/75 p-4 shadow-[0_28px_70px_rgba(109,40,217,0.12)] backdrop-blur-xl">
               <TechGlassPanel
+                imageUrl={getTechHeroImage(heroTicket?.category || selectedType)}
                 title={heroTicket?.title || "Queues are ready for the next fix"}
                 subtitle={
                   heroTicket
