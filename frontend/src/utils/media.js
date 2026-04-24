@@ -11,10 +11,7 @@ export function resolveMediaUrl(path) {
   }
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const encodedPath = encodeURI(normalizedPath);
 
-  if (normalizedPath.startsWith("/uploads/")) {
-    return normalizedPath;
-  }
-
-  return `${API_BASE_URL}${normalizedPath}`;
+  return `${API_BASE_URL}${encodedPath}`;
 }
