@@ -223,6 +223,8 @@ public class TicketService {
     private static final String UPLOAD_DIR = "uploads/tickets/";
 
     public TicketResponse createTicket(TicketRequest request, List<MultipartFile> images, String email) throws IOException {
+        validateTicketRequest(request);
+
         User reporter = findUserByEmail(email);
 
         List<String> imagePaths = new ArrayList<>();
@@ -331,6 +333,15 @@ public class TicketService {
     }
 
     /* ---------- helpers ---------- */
+
+    private void validateTicketRequest(TicketRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Ticket data is required");
+        }
+        if (request.getContactDetails() == null || request.getContactDetails().isBlank()) {
+            throw new IllegalArgumentException("Contact details are required");
+        }
+    }
 
     private String saveImage(MultipartFile file) throws IOException {
         Path uploadPath = Paths.get(UPLOAD_DIR);

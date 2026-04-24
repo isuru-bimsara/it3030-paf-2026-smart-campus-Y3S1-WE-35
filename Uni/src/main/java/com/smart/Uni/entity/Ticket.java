@@ -42,6 +42,10 @@ public class Ticket {
     @Builder.Default
     private TicketCategory category = TicketCategory.OTHER;
 
+    @Column(name = "is_other", nullable = false)
+    @Builder.Default
+    private boolean isOther = false;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private TicketPriority priority = TicketPriority.MEDIUM;
@@ -49,6 +53,18 @@ public class Ticket {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private TicketStatus status = TicketStatus.OPEN;
+
+    @Column(name = "resolution_acknowledged", nullable = false)
+    @Builder.Default
+    private boolean resolutionAcknowledged = false;
+
+    private LocalDateTime resolutionAcknowledgedAt;
+
+    @Column(name = "resolution_viewed", nullable = false)
+    @Builder.Default
+    private boolean resolutionViewed = false;
+
+    private LocalDateTime resolutionViewedAt;
 
     @ElementCollection
     @CollectionTable(name = "ticket_images", joinColumns = @JoinColumn(name = "ticket_id"))
@@ -60,4 +76,13 @@ public class Ticket {
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @PrePersist
+    @PreUpdate
+    private void syncDerivedFields() {
+        if (category == null) {
+            category = TicketCategory.OTHER;
+        }
+        isOther = category == TicketCategory.OTHER;
+    }
 }

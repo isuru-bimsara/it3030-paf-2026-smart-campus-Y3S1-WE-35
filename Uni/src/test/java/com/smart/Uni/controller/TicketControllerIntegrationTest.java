@@ -78,6 +78,9 @@ class TicketControllerIntegrationTest {
 
         Ticket saved = ticketRepository.findAll().stream().findFirst().orElseThrow();
         assertThat(saved.getContactDetails()).isEqualTo("student@example.com");
+        assertThat(saved.isOther()).isFalse();
+        assertThat(saved.isResolutionAcknowledged()).isFalse();
+        assertThat(saved.isResolutionViewed()).isFalse();
     }
 
     @Test
@@ -91,6 +94,31 @@ class TicketControllerIntegrationTest {
                 {
                   "title": "Broken chair",
                   "description": "Chair in lab 2 is broken",
+                  "category": "OTHER",
+                  "priority": "LOW"
+                }
+                """.getBytes(StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(multipart("/api/tickets").file(ticketPart))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.data.contactDetails").value("Contact details are required"));
+    }
+
+    @Test
+    @WithMockUser(username = "student@example.com", roles = "USER")
+    void createTicketReturnsValidationErrorWhenContactDetailsBlank() throws Exception {
+        MockMultipartFile ticketPart = new MockMultipartFile(
+                "ticket",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                """
+                {
+                  "title": "Broken chair",
+                  "description": "Chair in lab 2 is broken",
+                  "contactDetails": "   ",
                   "category": "OTHER",
                   "priority": "LOW"
                 }
