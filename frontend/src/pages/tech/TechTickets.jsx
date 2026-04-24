@@ -376,6 +376,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ticketsApi } from "../../api/tickets";
 import TicketComments from "../TicketComments";
+import { resolveMediaUrl } from "../../utils/media";
 import {
   MessageSquare,
   Filter,
@@ -384,7 +385,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-const BASE_URL = "http://localhost:8083";
+const TICKET_POLL_MS = 10000;
 
 const TICKET_CATEGORIES = [
   "ALL",
@@ -420,7 +421,35 @@ export default function TechTickets() {
   const openCommentsFromQuery = searchParams.get("openComments") === "true";
 
   useEffect(() => {
-    fetchTickets();
+    let isActive = true;
+
+    const loadTickets = async () => {
+      try {
+        let res;
+        if (filters.category === "ALL") {
+          res = await ticketsApi.getAll();
+        } else {
+          res = await ticketsApi.getByCategory(filters.category);
+        }
+
+        if (isActive) {
+          setTickets(res.data.data || []);
+        }
+      } catch (err) {
+        console.error(err);
+        if (isActive) {
+          setTickets([]);
+        }
+      }
+    };
+
+    loadTickets();
+    const intervalId = window.setInterval(loadTickets, TICKET_POLL_MS);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+    };
   }, [filters.category]);
 
   const fetchTickets = async () => {
@@ -478,7 +507,17 @@ export default function TechTickets() {
       if (statusWeight[b.status] !== statusWeight[a.status]) {
         return statusWeight[b.status] - statusWeight[a.status];
       }
-      return priorityWeight[b.priority] - priorityWeight[a.priority];
+
+      const createdAtDiff = new Date(b.createdAt) - new Date(a.createdAt);
+      if (createdAtDiff !== 0) {
+        return createdAtDiff;
+      }
+
+      if (priorityWeight[b.priority] !== priorityWeight[a.priority]) {
+        return priorityWeight[b.priority] - priorityWeight[a.priority];
+      }
+
+      return Number(b.id) - Number(a.id);
     });
   }, [tickets, filters]);
 
@@ -617,7 +656,7 @@ export default function TechTickets() {
                 {t.images?.slice(0, 3).map((img, idx) => (
                   <img
                     key={idx}
-                    src={img.startsWith("http") ? img : `${BASE_URL}/${img}`}
+                    src={resolveMediaUrl(img)}
                     className="w-12 h-12 object-cover rounded-lg border border-gray-100"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -735,14 +774,12 @@ export default function TechTickets() {
                 {selectedTicket.images?.map((img, i) => (
                   <img
                     key={i}
-                    src={img.startsWith("http") ? img : `${BASE_URL}/${img}`}
+                    src={resolveMediaUrl(img)}
                     className="w-full h-20 object-cover rounded-xl cursor-pointer hover:ring-2 ring-blue-500 transition-all"
                     onClick={() =>
                       setImageModal({
                         open: true,
-                        src: img.startsWith("http")
-                          ? img
-                          : `${BASE_URL}/${img}`,
+                        src: resolveMediaUrl(img),
                       })
                     }
                   />

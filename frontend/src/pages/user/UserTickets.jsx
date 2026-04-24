@@ -17,6 +17,7 @@ import {
 import { ticketsApi } from "../../api/tickets";
 import { useAuth } from "../../context/AuthContext";
 import TicketComments from "../TicketComments";
+import { resolveMediaUrl } from "../../utils/media";
 
 export default function UserTickets() {
   const [tickets, setTickets] = useState([]);
@@ -638,7 +639,7 @@ export default function UserTickets() {
                                   {t.images.slice(0, 3).map((img, idx) => (
                                     <img
                                       key={idx}
-                                      src={img.startsWith("http") ? img : `/${img}`}
+                                      src={resolveMediaUrl(img)}
                                       alt="Attachment"
                                       className="inline-block h-10 w-10 rounded-xl bg-slate-100 object-cover ring-2 ring-white shadow-sm"
                                     />

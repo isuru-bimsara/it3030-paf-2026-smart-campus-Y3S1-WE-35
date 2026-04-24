@@ -199,11 +199,15 @@ import com.smart.Uni.exception.ResourceNotFoundException;
 import com.smart.Uni.repository.TicketRepository;
 import com.smart.Uni.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -220,7 +224,9 @@ public class TicketService {
     private final NotificationService notificationService;
 
     private static final int MAX_IMAGES = 3;
-    private static final String UPLOAD_DIR = "uploads/tickets/";
+
+    @Value("${app.upload.dir:uploads}")
+    private String uploadDir;
 
     public TicketResponse createTicket(TicketRequest request, List<MultipartFile> images, String email) throws IOException {
         validateTicketRequest(request);
@@ -344,12 +350,18 @@ public class TicketService {
     }
 
     private String saveImage(MultipartFile file) throws IOException {
-        Path uploadPath = Paths.get(UPLOAD_DIR);
-        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
-        String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
+        Path uploadPath = Path.of(uploadDir, "tickets");
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        String originalFilename = StringUtils.cleanPath(
+                file.getOriginalFilename() == null ? "ticket-image" : file.getOriginalFilename()
+        );
+        String filename = UUID.randomUUID() + "_" + originalFilename;
         Path filePath = uploadPath.resolve(filename);
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-        return UPLOAD_DIR + filename;
+        return "/uploads/tickets/" + filename;
     }
 
     private Ticket findTicketById(Long id) {
@@ -379,10 +391,40 @@ public class TicketService {
                 .category(t.getCategory())
                 .priority(t.getPriority())
                 .status(t.getStatus())
-                .images(t.getImages())
+                .images(normalizeImagePaths(t.getImages()))
                 .resolvedAt(t.getResolvedAt())
                 .createdAt(t.getCreatedAt())
                 .responseTimeMinutes(responseTime)
                 .build();
+    }
+
+    private List<String> normalizeImagePaths(List<String> images) {
+        if (images == null || images.isEmpty()) {
+            return List.of();
+        }
+
+        return images.stream()
+                .map(this::normalizeImagePath)
+                .toList();
+    }
+
+    private String normalizeImagePath(String imagePath) {
+        if (imagePath == null || imagePath.isBlank()) {
+            return imagePath;
+        }
+
+        if (imagePath.startsWith("http://") || imagePath.startsWith("https://") || imagePath.startsWith("/uploads/")) {
+            return imagePath;
+        }
+
+        if (imagePath.startsWith("uploads/")) {
+            return "/" + imagePath;
+        }
+
+        if (imagePath.startsWith("/")) {
+            return imagePath;
+        }
+
+        return "/uploads/" + imagePath;
     }
 }
