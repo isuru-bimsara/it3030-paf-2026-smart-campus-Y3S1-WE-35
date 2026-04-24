@@ -10,6 +10,7 @@ import java.util.List;
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
     List<Ticket> findByReporterId(Long reporterId);
+    long countByReporterId(Long reporterId);
     List<Ticket> findByAssigneeId(Long assigneeId);
     List<Ticket> findByStatus(TicketStatus status);
     List<Ticket> findByTitleContainingIgnoreCase(String title);

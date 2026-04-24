@@ -316,7 +316,9 @@ import com.smart.Uni.repository.BookingRepository;
 import com.smart.Uni.repository.ResourceRepository;
 import com.smart.Uni.repository.TicketRepository;
 import com.smart.Uni.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.ObjectNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -328,6 +330,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
@@ -633,10 +636,10 @@ public class TicketService {
 
         return TicketResponse.builder()
                 .id(t.getId())
-                .reporterId(t.getReporter().getId())
-                .reporterName(t.getReporter().getName())
-                .assigneeId(t.getAssignee() != null ? t.getAssignee().getId() : null)
-                .assigneeName(t.getAssignee() != null ? t.getAssignee().getName() : null)
+                .reporterId(safeGet(() -> t.getReporter().getId(), null))
+                .reporterName(safeGet(() -> t.getReporter().getName(), "Unknown User"))
+                .assigneeId(safeGet(() -> t.getAssignee() != null ? t.getAssignee().getId() : null, null))
+                .assigneeName(safeGet(() -> t.getAssignee() != null ? t.getAssignee().getName() : null, null))
                 .title(t.getTitle())
                 .description(t.getDescription())
                 .contactDetails(t.getContactDetails())
@@ -644,9 +647,9 @@ public class TicketService {
                 .priority(t.getPriority())
                 .status(t.getStatus())
                 .images(t.getImages())
-                .resourceId(t.getResource() != null ? t.getResource().getId() : null)
-                .resourceName(t.getResource() != null ? t.getResource().getName() : null)
-                .bookingId(t.getBooking() != null ? t.getBooking().getId() : null)
+                .resourceId(safeGet(() -> t.getResource() != null ? t.getResource().getId() : null, null))
+                .resourceName(safeGet(() -> t.getResource() != null ? t.getResource().getName() : null, null))
+                .bookingId(safeGet(() -> t.getBooking() != null ? t.getBooking().getId() : null, null))
                 .isOther(t.isOther())
                 .rejectionReason(t.getRejectionReason())
                 .internalNotes(t.getInternalNotes())
@@ -659,5 +662,19 @@ public class TicketService {
                 .createdAt(t.getCreatedAt())
                 .responseTimeMinutes(responseMinutes)
                 .build();
+    }
+
+    private <T> T safeGet(Supplier<T> getter, T fallback) {
+        try {
+            return getter.get();
+        } catch (EntityNotFoundException | ObjectNotFoundException e) {
+            return fallback;
+        } catch (RuntimeException e) {
+            String message = e.getMessage();
+            if (message != null && message.contains("Unable to find")) {
+                return fallback;
+            }
+            throw e;
+        }
     }
 }

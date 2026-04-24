@@ -464,9 +464,9 @@ export default function TechTickets() {
 
   const [tickets, setTickets] = useState([]);
   const [fetching, setFetching] = useState(true);
+  const [fetchError, setFetchError] = useState("");
 
-  // default: MY_ACTIVE always
-  const [activeTab, setActiveTab] = useState("MY_ACTIVE");
+  const [activeTab, setActiveTab] = useState("ALL");
 
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentTicketId, setCommentTicketId] = useState(null);
@@ -492,12 +492,14 @@ export default function TechTickets() {
 
   const fetchTickets = async () => {
     setFetching(true);
+    setFetchError("");
     try {
       const res = await ticketsApi.getAll();
       setTickets(res?.data?.data || []);
     } catch (err) {
       console.error(err);
       setTickets([]);
+      setFetchError(err?.response?.data?.message || "Failed to load tickets.");
     } finally {
       setFetching(false);
     }
@@ -524,21 +526,32 @@ export default function TechTickets() {
     openTicketDetails(t);
   }, [ticketIdFromQuery, tickets, myId]);
 
+  const sortNewestFirst = (items) =>
+    [...items].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
   const filteredTickets = useMemo(() => {
     switch (activeTab) {
+      case "ALL":
+        return sortNewestFirst(tickets);
       case "AVAILABLE":
-        return tickets.filter((t) => !t.assigneeId && t.status === "OPEN");
+        return sortNewestFirst(tickets.filter((t) => !t.assigneeId && t.status === "OPEN"));
       case "MY_ACTIVE":
-        return tickets.filter(
-          (t) => Number(t.assigneeId) === myId && t.status === "IN_PROGRESS"
+        return sortNewestFirst(
+          tickets.filter(
+            (t) => Number(t.assigneeId) === myId && t.status === "IN_PROGRESS"
+          )
         );
       case "RESOLVED":
-        return tickets.filter(
-          (t) => Number(t.assigneeId) === myId && t.status === "RESOLVED"
+        return sortNewestFirst(
+          tickets.filter(
+            (t) => Number(t.assigneeId) === myId && t.status === "RESOLVED"
+          )
         );
       case "CLOSED":
-        return tickets.filter(
-          (t) => Number(t.assigneeId) === myId && t.status === "CLOSED"
+        return sortNewestFirst(
+          tickets.filter(
+            (t) => Number(t.assigneeId) === myId && t.status === "CLOSED"
+          )
         );
       default:
         return [];
@@ -556,7 +569,7 @@ export default function TechTickets() {
     const closed = tickets.filter(
       (t) => Number(t.assigneeId) === myId && t.status === "CLOSED"
     ).length;
-    return { available, active, resolved, closed };
+    return { all: tickets.length, available, active, resolved, closed };
   }, [tickets, myId]);
 
   const openTicketDetails = (ticket) => {
@@ -696,7 +709,7 @@ export default function TechTickets() {
           <div>
             <h1 className="text-3xl font-black text-slate-900">Technician Workbench</h1>
             <p className="text-slate-500 font-medium mt-0.5">
-              Default view: <span className="font-bold">My Active Tickets</span>
+              View all tickets first, then jump into your working queues.
             </p>
           </div>
         </div>
@@ -712,6 +725,7 @@ export default function TechTickets() {
 
           <div className="flex p-1.5 bg-slate-100 rounded-2xl w-full xl:w-auto flex-wrap">
             {[
+              { id: "ALL", label: `All (${counts.all})`, icon: Eye },
               { id: "MY_ACTIVE", label: `My Active (${counts.active})`, icon: UserCheck },
               { id: "AVAILABLE", label: `Available (${counts.available})`, icon: ClipboardList },
               { id: "RESOLVED", label: `Resolved (${counts.resolved})`, icon: CheckCircle2 },
@@ -753,6 +767,13 @@ export default function TechTickets() {
                 <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-3" />
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                   Loading tickets...
+                </p>
+              </div>
+            ) : fetchError ? (
+              <div className="py-16 px-6 text-center">
+                <p className="text-sm font-bold text-rose-600">{fetchError}</p>
+                <p className="text-xs text-slate-400 mt-2">
+                  Refresh after the backend data issue is fixed.
                 </p>
               </div>
             ) : filteredTickets.length === 0 ? (

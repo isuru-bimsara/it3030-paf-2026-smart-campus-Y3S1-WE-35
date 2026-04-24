@@ -9,7 +9,10 @@ export default function UserDashboard() {
   });
 
   useEffect(() => {
-    api.get('/user/stats').then(res => setStats(res.data)).catch(() => {});
+    api
+      .get('/users/stats')
+      .then((res) => setStats(res.data.data || res.data))
+      .catch(() => {});
   }, []);
 
   return (

@@ -3,7 +3,7 @@
 // frontend/src/layouts/TechLayout.jsx
 
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 
@@ -21,7 +21,7 @@ import { Link } from "react-router-dom";
 
 export default function TechLayout() {
   const navigate = useNavigate();
-  const { user, setUser } = useAuth();
+  const { user, setUser, logout } = useAuth();
   const { unreadCount } = useNotifications();
 
 
@@ -41,7 +41,7 @@ export default function TechLayout() {
 
   // ✅ LOGOUT FUNCTION
   const handleLogout = () => {
-    localStorage.removeItem("token"); // remove JWT
+    logout();
     navigate("/login"); // redirect
   };
 
