@@ -1,413 +1,559 @@
+// // //frontend/src/pages/user/UserResources.jsx
+// // import { useEffect, useState } from "react";
+// // import { resourcesApi } from "../../api/resources";
+// // import { useNavigate } from "react-router-dom";
+// // import { Box, Users, Tag, ArrowRight, Search } from "lucide-react";
+
+// // export default function UserResources() {
+// //   const [resources, setResources] = useState([]);
+// //   const navigate = useNavigate();
+
+// //   useEffect(() => {
+// //     resourcesApi
+// //       .getAvailable()
+// //       .then((res) => {
+// //         setResources(res.data);
+// //       })
+// //       .catch((err) => console.error(err));
+// //   }, []);
+
+// //   return (
+// //     <div className="space-y-8">
+// //       {/* Header Section */}
+// //       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+// //         <div>
+// //           <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+// //             Available Resources
+// //           </h1>
+// //           <p className="text-slate-500 mt-1 font-medium">
+// //             Select a workspace or equipment to begin your reservation.
+// //           </p>
+// //         </div>
+
+// //         {/* Search Bar Placeholder (Visual only) */}
+// //         <div className="relative">
+// //           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+// //           <input
+// //             type="text"
+// //             placeholder="Search resources..."
+// //             className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl w-full md:w-64 focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+// //           />
+// //         </div>
+// //       </div>
+
+// //       {/* Grid Section */}
+// //       {resources.length === 0 ? (
+// //         <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-200">
+// //           <Box className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+// //           <p className="text-slate-500 font-bold text-xl">
+// //             No resources available right now.
+// //           </p>
+// //         </div>
+// //       ) : (
+// //         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+// //           {resources.map((r) => (
+// //             <div
+// //               key={r.id}
+// //               className="group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-2xl hover:shadow-indigo-100 hover:-translate-y-1 transition-all duration-300"
+// //             >
+// //               {/* Image Container */}
+// //               <div className="relative h-52 overflow-hidden">
+// //                 <img
+// //                   src={`http://localhost:8083${r.imageUrl}`}
+// //                   alt={r.name}
+// //                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+// //                 />
+// //                 <div className="absolute top-4 left-4">
+// //                   <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-lg text-xs font-bold text-indigo-600 shadow-sm flex items-center gap-1.5 uppercase tracking-wider">
+// //                     <Tag className="w-3.5 h-3.5" />
+// //                     {r.type}
+// //                   </span>
+// //                 </div>
+// //               </div>
+
+// //               {/* Content Section */}
+// //               <div className="p-6">
+// //                 <h2 className="text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+// //                   {r.name}
+// //                 </h2>
+
+// //                 <div className="mt-4 flex items-center gap-6 text-slate-500">
+// //                   <div className="flex items-center gap-2">
+// //                     <Users className="w-4 h-4 text-indigo-500" />
+// //                     <span className="text-sm font-medium">
+// //                       Capacity: <b className="text-slate-700">{r.capacity}</b>
+// //                     </span>
+// //                   </div>
+// //                 </div>
+
+// //                 <button
+// //                   onClick={() => navigate(`/user/book/${r.id}`)}
+// //                   className="mt-6 w-full group/btn relative flex items-center justify-center gap-2 bg-slate-900 hover:bg-indigo-600 text-white py-3.5 rounded-xl font-bold transition-all overflow-hidden"
+// //                 >
+// //                   <span className="relative z-10 flex items-center gap-2">
+// //                     Book Now
+// //                     <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+// //                   </span>
+// //                 </button>
+// //               </div>
+// //             </div>
+// //           ))}
+// //         </div>
+// //       )}
+// //     </div>
+// //   );
+// // }
+
+
+// // frontend/src/pages/user/UserResources.jsx
+// import { useEffect, useState } from "react";
+// import { resourcesApi } from "../../api/resources";
+// import { useNavigate } from "react-router-dom";
+// import { 
+//   Box, 
+//   Users, 
+//   Tag, 
+//   ArrowRight, 
+//   Search, 
+//   Layers, 
+//   SortAsc,
+//   FilterX
+// } from "lucide-react";
+
+// export default function UserResources() {
+//   const [resources, setResources] = useState([]);
+//   const [searchQuery, setSearchQuery] = useState("");
+//   const [sortBy, setSortBy] = useState("default");
+//   const [loading, setLoading] = useState(true);
+//   const navigate = useNavigate();
+
+//   useEffect(() => {
+//     resourcesApi
+//       .getAvailable()
+//       .then((res) => {
+//         setResources(res.data);
+//       })
+//       .catch((err) => console.error(err))
+//       .finally(() => setLoading(false));
+//   }, []);
+
+//   // Filter and Sort Logic
+//   const filteredResources = resources
+//     .filter((r) => 
+//       r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+//       r.type.toLowerCase().includes(searchQuery.toLowerCase())
+//     )
+//     .sort((a, b) => {
+//       if (sortBy === "name") return a.name.localeCompare(b.name);
+//       if (sortBy === "quantity") {
+//         // Sort by quantity for equipment, capacity for others
+//         const valA = a.type.toLowerCase() === "equipment" ? a.quantity : a.capacity;
+//         const valB = b.type.toLowerCase() === "equipment" ? b.quantity : b.capacity;
+//         return valB - valA; // Higher numbers first
+//       }
+//       return 0;
+//     });
+
+//   return (
+//     <div className="space-y-8 pb-10">
+//       {/* Header Section */}
+//       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
+//         <div className="max-w-2xl">
+//           <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+//             Explore Resources
+//           </h1>
+//           <p className="text-slate-500 mt-2 text-lg font-medium">
+//             Find and reserve the perfect equipment or workspace for your next project.
+//           </p>
+//         </div>
+
+//         {/* Controls Section */}
+//         <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+//           {/* Search Bar */}
+//           <div className="relative w-full sm:w-80">
+//             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+//             <input
+//               type="text"
+//               placeholder="Search by name or type..."
+//               value={searchQuery}
+//               onChange={(e) => setSearchQuery(e.target.value)}
+//               className="pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl w-full focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm font-medium"
+//             />
+//           </div>
+
+//           {/* Sort Dropdown */}
+//           <div className="relative w-full sm:w-48">
+//             <SortAsc className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+//             <select
+//               value={sortBy}
+//               onChange={(e) => setSortBy(e.target.value)}
+//               className="pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl w-full appearance-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm font-bold text-slate-700 cursor-pointer"
+//             >
+//               <option value="default">Sort By</option>
+//               <option value="name">Name (A-Z)</option>
+//               <option value="quantity">Availability</option>
+//             </select>
+//           </div>
+//         </div>
+//       </div>
+
+//       <hr className="border-slate-200" />
+
+//       {/* Grid Section */}
+//       {loading ? (
+//         <div className="flex justify-center py-20">
+//           <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+//         </div>
+//       ) : filteredResources.length === 0 ? (
+//         <div className="bg-slate-50 rounded-[2.5rem] p-20 text-center border-2 border-dashed border-slate-200">
+//           <FilterX className="w-20 h-20 text-slate-300 mx-auto mb-6" />
+//           <h3 className="text-2xl font-bold text-slate-800">No matches found</h3>
+//           <p className="text-slate-500 mt-2 font-medium">
+//             Try adjusting your search or filters to find what you're looking for.
+//           </p>
+//           <button 
+//             onClick={() => {setSearchQuery(""); setSortBy("default");}}
+//             className="mt-6 text-indigo-600 font-bold hover:underline"
+//           >
+//             Clear all filters
+//           </button>
+//         </div>
+//       ) : (
+//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+//           {filteredResources.map((r) => {
+//             const isEquipment = r.type?.toLowerCase() === "equipment";
+            
+//             return (
+//               <div
+//                 key={r.id}
+//                 className="group bg-white rounded-[2rem] border border-slate-200 overflow-hidden hover:shadow-[0_20px_50px_rgba(79,70,229,0.15)] hover:-translate-y-2 transition-all duration-500"
+//               >
+//                 {/* Image Container */}
+//                 <div className="relative h-60 overflow-hidden">
+//                   <img
+//                     src={`http://localhost:8083${r.imageUrl}`}
+//                     alt={r.name}
+//                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+//                   />
+//                   <div className="absolute top-5 left-5">
+//                     <span className="bg-white/95 backdrop-blur px-4 py-1.5 rounded-xl text-[10px] font-black text-indigo-600 shadow-xl flex items-center gap-2 uppercase tracking-widest">
+//                       <Tag className="w-3.5 h-3.5" />
+//                       {r.type}
+//                     </span>
+//                   </div>
+//                 </div>
+
+//                 {/* Content Section */}
+//                 <div className="p-8">
+//                   <h2 className="text-2xl font-black text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1">
+//                     {r.name}
+//                   </h2>
+
+//                   <div className="mt-5 flex items-center gap-6 text-slate-500 bg-slate-50 p-4 rounded-2xl">
+//                     <div className="flex items-center gap-3">
+//                       {isEquipment ? (
+//                         <Layers className="w-5 h-5 text-indigo-500" />
+//                       ) : (
+//                         <Users className="w-5 h-5 text-indigo-500" />
+//                       )}
+//                       <span className="text-sm font-bold">
+//                         {isEquipment ? "Quantity" : "Capacity"}: 
+//                         <span className="ml-1 text-slate-900 text-base">
+//                           {isEquipment ? r.quantity : r.capacity}
+//                         </span>
+//                       </span>
+//                     </div>
+//                   </div>
+
+//                   <button
+//                     onClick={() => navigate(`/user/book/${r.id}`)}
+//                     className="mt-8 w-full group/btn flex items-center justify-center gap-3 bg-slate-900 hover:bg-indigo-600 text-white py-4 rounded-2xl font-black transition-all shadow-lg hover:shadow-indigo-200"
+//                   >
+//                     Reserve Now
+//                     <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+//                   </button>
+//                 </div>
+//               </div>
+//             );
+//           })}
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
 import { useEffect, useMemo, useState } from "react";
+import { resourcesApi } from "../../api/resources";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowRight,
   Box,
-  MapPin,
-  Search,
-  Sparkles,
-  Tag,
   Users,
+  Tag,
+  ArrowRight,
+  Search,
+  Layers,
+  SortAsc,
+  FilterX,
+  MapPin,
+  AlignLeft,
+  CalendarDays,
+  CircleCheck,
 } from "lucide-react";
-import { resourcesApi } from "../../api/resources";
-
-const ONLINE_FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=80";
-
-function resourceImageUrl(resource) {
-  if (!resource?.imageUrl) return null;
-  return resource.imageUrl.startsWith("http")
-    ? resource.imageUrl
-    : `http://localhost:8083${resource.imageUrl}`;
-}
-
-function GradientPlaceholder({ label = "Campus Resource" }) {
-  return (
-    <div className="absolute inset-0 bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_48%,#A78BFA_100%)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.35),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.18),transparent_34%)]" />
-      <div className="absolute -right-10 top-8 h-36 w-36 rounded-full border border-white/20 bg-white/10 backdrop-blur" />
-      <div className="absolute left-6 top-8 h-20 w-20 rounded-full border border-white/15 bg-white/10 backdrop-blur" />
-      <div className="absolute bottom-20 right-8 h-24 w-24 rounded-3xl border border-white/15 bg-white/10 rotate-12 backdrop-blur" />
-      <div className="relative flex h-full items-end p-6">
-        <div className="rounded-2xl border border-white/25 bg-white/15 px-4 py-3 backdrop-blur">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-violet-100">
-            Featured Space
-          </p>
-          <p className="mt-2 text-lg font-black text-white">{label}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function UserResources() {
   const [resources, setResources] = useState([]);
-  const [query, setQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("default");
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     resourcesApi
       .getAvailable()
       .then((res) => {
-        setResources(Array.isArray(res.data) ? res.data : (res.data?.data || []));
+        const data = Array.isArray(res?.data) ? res.data : res?.data?.data || [];
+        setResources(data);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredResources = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return resources;
+    const q = searchQuery.trim().toLowerCase();
 
-    return resources.filter((resource) =>
-      [resource.name, resource.location, resource.type, resource.description]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalizedQuery)),
-    );
-  }, [query, resources]);
+    const list = resources.filter((r) => {
+      const name = String(r.name || "").toLowerCase();
+      const type = String(r.type || "").toLowerCase();
+      const location = String(r.location || "").toLowerCase();
+      const status = String(r.status || "").toLowerCase();
+      const description = String(r.description || "").toLowerCase();
 
-  const heroResource = useMemo(
-    () =>
-      filteredResources.find((resource) => resourceImageUrl(resource)) ||
-      filteredResources[0] ||
-      null,
-    [filteredResources],
-  );
+      return (
+        name.includes(q) ||
+        type.includes(q) ||
+        location.includes(q) ||
+        status.includes(q) ||
+        description.includes(q)
+      );
+    });
+
+    list.sort((a, b) => {
+      const nameA = String(a.name || "");
+      const nameB = String(b.name || "");
+      const typeA = String(a.type || "");
+      const typeB = String(b.type || "");
+      const valueA = Number(a.capacity ?? 0);
+      const valueB = Number(b.capacity ?? 0);
+      const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+      switch (sortBy) {
+        case "name-asc":
+          return nameA.localeCompare(nameB);
+        case "name-desc":
+          return nameB.localeCompare(nameA);
+        case "type-asc":
+          return typeA.localeCompare(typeB);
+        case "type-desc":
+          return typeB.localeCompare(typeA);
+        case "value-desc":
+          return valueB - valueA;
+        case "value-asc":
+          return valueA - valueB;
+        case "newest":
+          return createdB - createdA;
+        case "oldest":
+          return createdA - createdB;
+        default:
+          return 0;
+      }
+    });
+
+    return list;
+  }, [resources, searchQuery, sortBy]);
+
+  const fmtType = (type) => String(type || "OTHER").replaceAll("_", " ");
+  const fmtStatus = (status) => String(status || "UNKNOWN").replaceAll("_", " ");
+  const fmtDate = (date) => (date ? new Date(date).toLocaleDateString() : "N/A"); // date only
+
+  const isBookDisabled = (status) => {
+    const s = String(status || "").toUpperCase();
+    return s === "UNAVAILABLE" || s === "MAINTENANCE";
+  };
 
   return (
-    <div className="space-y-8 pb-16">
-      <style>{`
-        @keyframes resourceFloat {
-          0%, 100% { transform: translate3d(0, 0, 0); }
-          50% { transform: translate3d(0, -8px, 0); }
-        }
-
-        @keyframes resourcePan {
-          0% { transform: scale(1.02); }
-          50% { transform: scale(1.08); }
-          100% { transform: scale(1.02); }
-        }
-
-        @keyframes resourceFadeUp {
-          0% { opacity: 0; transform: translate3d(0, 16px, 0); }
-          100% { opacity: 1; transform: translate3d(0, 0, 0); }
-        }
-
-        @keyframes gradientStream {
-          0% { transform: translateX(-18%); opacity: 0.55; }
-          50% { transform: translateX(18%); opacity: 1; }
-          100% { transform: translateX(-18%); opacity: 0.55; }
-        }
-
-        .resource-hero-float {
-          animation: resourceFloat 8s ease-in-out infinite;
-        }
-
-        .resource-image-pan {
-          animation: resourcePan 18s ease-in-out infinite;
-          transform-origin: center center;
-        }
-
-        .resource-fade-up {
-          animation: resourceFadeUp 700ms ease-out both;
-        }
-
-        .resource-gradient-line {
-          animation: gradientStream 9s ease-in-out infinite;
-        }
-      `}</style>
-
-      <section className="relative overflow-hidden rounded-[38px] border border-white/60 bg-[linear-gradient(135deg,#faf5ff_0%,#f3e8ff_40%,#eef2ff_100%)] px-6 py-8 shadow-[0_30px_95px_rgba(124,58,237,0.14)] md:px-8 xl:px-10">
-        <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-violet-300/30 blur-3xl" />
-        <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-purple-300/25 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-10 left-1/3 h-56 w-56 rounded-full bg-fuchsia-300/20 blur-3xl" />
-        <div className="pointer-events-none absolute right-20 bottom-0 h-48 w-48 rounded-full bg-indigo-300/20 blur-3xl" />
-
-        <div className="relative z-10 grid gap-8 xl:grid-cols-[1.08fr_0.92fr] xl:items-center">
-          <div className="resource-fade-up space-y-7">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200/80 bg-white/80 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-violet-700 shadow-sm backdrop-blur-xl">
-                <Sparkles className="h-3.5 w-3.5" />
-                Premium Resource Gallery
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-violet-700 shadow-[0_14px_34px_rgba(124,58,237,0.10)] backdrop-blur-xl">
-                SMART BOOKING
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <p className="text-sm font-bold tracking-[0.08em] text-violet-600">
-                Book premium spaces across campus
-              </p>
-              <h1 className="max-w-3xl text-4xl font-black tracking-[-0.06em] text-slate-950 md:text-5xl xl:text-6xl">
-                Discover the right room,
-                <span className="block bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_42%,#8B5CF6_72%,#A855F7_100%)] bg-clip-text tracking-[-0.05em] text-transparent">
-                  beautifully presented
-                </span>
-              </h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
-                Explore lecture halls, labs, and campus spaces in a cleaner,
-                faster booking experience with elegant previews, search, and
-                quick actions.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl border border-white/50 bg-white/70 p-5 shadow-[0_20px_60px_rgba(124,58,237,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(124,58,237,0.18)]">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  Available
-                </p>
-                <p className="mt-3 text-4xl font-black tracking-tight text-slate-950">
-                  {resources.length}
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-500">
-                  Ready-to-book campus resources
-                </p>
-              </div>
-
-              <div className="rounded-3xl border border-white/50 bg-white/70 p-5 shadow-[0_20px_60px_rgba(124,58,237,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(124,58,237,0.18)]">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  Showing
-                </p>
-                <p className="mt-3 text-4xl font-black tracking-tight text-slate-950">
-                  {filteredResources.length}
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-500">
-                  Matching your current search
-                </p>
-              </div>
-
-              <div className="rounded-3xl border border-white/50 bg-white/70 p-5 shadow-[0_20px_60px_rgba(124,58,237,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(124,58,237,0.18)]">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  Top Type
-                </p>
-                <p className="mt-3 line-clamp-1 text-2xl font-black tracking-tight text-slate-950">
-                  {heroResource?.type?.replaceAll("_", " ") || "Campus Space"}
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-500">
-                  Highlighted for quicker discovery
-                </p>
-              </div>
-            </div>
-
-            <div className="h-[6px] overflow-hidden rounded-full bg-white/60 shadow-inner">
-              <div className="resource-gradient-line h-full w-[55%] rounded-full bg-[linear-gradient(90deg,#6D28D9_0%,#7C3AED_35%,#8B5CF6_70%,#A855F7_100%)] shadow-[0_0_30px_rgba(124,58,237,0.35)]" />
-            </div>
-
-            <div className="relative max-w-xl">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search by name, type, location, or details..."
-                className="w-full rounded-[24px] border border-white/60 bg-white/75 py-4 pl-12 pr-4 text-sm font-medium text-slate-700 shadow-[0_18px_40px_rgba(124,58,237,0.10)] outline-none transition-all duration-300 placeholder:text-slate-400 focus:border-violet-300 focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_22px_50px_rgba(124,58,237,0.18)] backdrop-blur-xl"
-              />
-            </div>
-          </div>
-
-          <div className="resource-hero-float resource-fade-up mx-auto w-full max-w-[540px]" style={{ animationDelay: "120ms" }}>
-            <div className="rounded-[36px] border border-white/60 bg-white/70 p-4 shadow-[0_28px_80px_rgba(124,58,237,0.14)] backdrop-blur-2xl">
-              <div className="relative h-[380px] overflow-hidden rounded-[28px] md:h-[420px]">
-                <GradientPlaceholder label={heroResource?.name || "Campus Resource"} />
-                <img
-                  src={ONLINE_FALLBACK_IMAGE}
-                  alt="Premium campus resource"
-                  className="resource-image-pan absolute inset-0 h-full w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-                {heroResource && resourceImageUrl(heroResource) ? (
-                  <img
-                    src={resourceImageUrl(heroResource)}
-                    alt={heroResource.name}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 hover:scale-[1.03]"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                ) : null}
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.06)_0%,rgba(76,29,149,0.18)_28%,rgba(46,16,101,0.86)_100%)]" />
-                <div className="absolute left-5 top-5 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white backdrop-blur">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Featured Pick
-                  </span>
-                </div>
-                <div className="absolute right-5 top-5 rounded-2xl border border-white/20 bg-white/15 px-4 py-3 text-right backdrop-blur">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-100">
-                    Capacity
-                  </p>
-                  <p className="mt-1 text-lg font-black text-white">
-                    {heroResource?.capacity || 0}
-                  </p>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <div className="rounded-[26px] border border-white/20 bg-white/12 p-5 backdrop-blur-xl">
-                    <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100 backdrop-blur">
-                      <Tag className="h-3.5 w-3.5" />
-                      {heroResource?.type?.replaceAll("_", " ") || "Campus Ready"}
-                    </div>
-
-                    <h2 className="text-3xl font-black tracking-tight text-white">
-                      {heroResource?.name || "Premium Campus Space"}
-                    </h2>
-                    <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold text-white/90">
-                      <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 backdrop-blur">
-                        <MapPin className="h-4 w-4" />
-                        {heroResource?.location || "Campus location"}
-                      </span>
-                      <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 backdrop-blur">
-                        <Users className="h-4 w-4" />
-                        Capacity {heroResource?.capacity || 0}
-                      </span>
-                    </div>
-                    <p className="mt-4 line-clamp-2 max-w-lg text-sm leading-6 text-white/80">
-                      {heroResource?.description ||
-                        "A polished campus-ready space designed for lectures, collaboration, and faster booking decisions."}
-                    </p>
-
-                    <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="grid flex-1 grid-cols-2 gap-3">
-                        <div className="rounded-2xl bg-white/12 px-4 py-3">
-                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-100">
-                            Resource
-                          </p>
-                          <p className="mt-1 text-sm font-bold text-white">
-                            {heroResource?.type?.replaceAll("_", " ") || "Space"}
-                          </p>
-                        </div>
-                        <div className="rounded-2xl bg-white/12 px-4 py-3">
-                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-100">
-                            Ready To Book
-                          </p>
-                          <p className="mt-1 text-sm font-bold text-white">
-                            Available now
-                          </p>
-                        </div>
-                      </div>
-
-                      {heroResource ? (
-                        <button
-                          onClick={() => navigate(`/user/book/${heroResource.id}`)}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-violet-700 shadow-[0_16px_34px_rgba(15,23,42,0.16)] transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.02] hover:bg-violet-50 hover:shadow-[0_22px_44px_rgba(124,58,237,0.24)]"
-                        >
-                          Book Featured
-                          <ArrowRight className="h-4 w-4" />
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {filteredResources.length === 0 ? (
-        <div className="rounded-[32px] border-2 border-dashed border-violet-100 bg-white px-8 py-20 text-center shadow-[0_16px_40px_rgba(109,40,217,0.06)]">
-          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-violet-50">
-            <Box className="h-10 w-10 text-violet-300" />
-          </div>
-          <h2 className="text-2xl font-black tracking-tight text-slate-900">
-            No matching resources found
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500">
-            Try a different search term or clear the filter to see all available
-            spaces and equipment.
+    <div className="space-y-8 pb-10">
+      {/* Header */}
+      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
+        <div className="max-w-2xl">
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+            Explore Resources
+          </h1>
+          <p className="text-slate-500 mt-2 text-lg font-medium">
+            Find and reserve the perfect equipment or workspace for your next project.
           </p>
         </div>
-      ) : (
-        <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {filteredResources.map((resource) => (
-            <article
-              key={resource.id}
-              className="group overflow-hidden rounded-[30px] border border-white/60 bg-white/72 shadow-[0_20px_60px_rgba(124,58,237,0.10)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:scale-[1.01] hover:border-violet-200 hover:shadow-[0_28px_70px_rgba(124,58,237,0.18)]"
+
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search name, type, location, status..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl w-full focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm font-medium"
+            />
+          </div>
+
+          <div className="relative w-full sm:w-56">
+            <SortAsc className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl w-full appearance-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm font-bold text-slate-700 cursor-pointer"
             >
-              <div className="relative h-[250px] overflow-hidden">
-                <GradientPlaceholder label={resource.name} />
-                <img
-                  src={ONLINE_FALLBACK_IMAGE}
-                  alt="Campus resource preview"
-                  className="resource-image-pan absolute inset-0 h-full w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-                {resourceImageUrl(resource) ? (
+              <option value="default">Sort By</option>
+              <option value="name-asc">Name (A-Z)</option>
+              <option value="name-desc">Name (Z-A)</option>
+              <option value="type-asc">Type (A-Z)</option>
+              <option value="type-desc">Type (Z-A)</option>
+              <option value="value-desc">Availability (High-Low)</option>
+              <option value="value-asc">Availability (Low-High)</option>
+              <option value="newest">Newest Added</option>
+              <option value="oldest">Oldest Added</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <hr className="border-slate-200" />
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+        </div>
+      ) : filteredResources.length === 0 ? (
+        <div className="bg-slate-50 rounded-[2.5rem] p-20 text-center border-2 border-dashed border-slate-200">
+          <FilterX className="w-20 h-20 text-slate-300 mx-auto mb-6" />
+          <h3 className="text-2xl font-bold text-slate-800">No matches found</h3>
+          <p className="text-slate-500 mt-2 font-medium">
+            Try adjusting your search or filters.
+          </p>
+          <button
+            onClick={() => {
+              setSearchQuery("");
+              setSortBy("default");
+            }}
+            className="mt-6 text-indigo-600 font-bold hover:underline"
+          >
+            Clear all filters
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredResources.map((r) => {
+            const isEquipment = String(r.type || "").toUpperCase() === "EQUIPMENT";
+            const disabled = isBookDisabled(r.status);
+
+            const imageSrc = r.imageUrl
+              ? `http://localhost:8083${r.imageUrl}`
+              : "https://via.placeholder.com/800x500?text=No+Image";
+
+            return (
+              <div
+                key={r.id}
+                className="group bg-white rounded-[2rem] border border-slate-200 overflow-hidden hover:shadow-[0_20px_50px_rgba(79,70,229,0.15)] hover:-translate-y-2 transition-all duration-500"
+              >
+                {/* Image */}
+                <div className="relative h-60 overflow-hidden bg-slate-100">
                   <img
-                    src={resourceImageUrl(resource)}
-                    alt={resource.name}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    src={imageSrc}
+                    alt={r.name}
                     onError={(e) => {
-                      e.currentTarget.style.display = "none";
+                      e.currentTarget.src = "https://via.placeholder.com/800x500?text=No+Image";
                     }}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
-                ) : null}
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.06)_0%,rgba(76,29,149,0.18)_40%,rgba(46,16,101,0.80)_100%)]" />
-
-                <div className="absolute left-4 top-4">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white backdrop-blur">
-                    <Tag className="h-3.5 w-3.5" />
-                    {resource.type?.replaceAll("_", " ")}
-                  </span>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-5">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-xs font-bold text-white/90 backdrop-blur">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {resource.location || "Campus location"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl font-black tracking-tight text-slate-950 transition-colors group-hover:text-violet-700">
-                      {resource.name}
-                    </h2>
-                    <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
-                      {resource.description || "Ready for your next booking with a clean, streamlined reservation flow."}
-                    </p>
+                  <div className="absolute top-5 left-5">
+                    <span className="bg-white/95 backdrop-blur px-4 py-1.5 rounded-xl text-[10px] font-black text-indigo-600 shadow-xl flex items-center gap-2 uppercase tracking-widest">
+                      <Tag className="w-3.5 h-3.5" />
+                      {fmtType(r.type)}
+                    </span>
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                      Capacity
-                    </p>
-                    <div className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-800">
-                      <Users className="h-4 w-4 text-violet-500" />
-                      {resource.capacity || 0} people
+                {/* Content */}
+                <div className="p-8">
+                  <h2 className="text-2xl font-black text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                    {r.name || "Unnamed Resource"}
+                  </h2>
+
+                  <div className="mt-5 space-y-3 text-sm">
+                    <div className="flex items-start gap-3 text-slate-600">
+                      <AlignLeft className="w-4 h-4 mt-0.5 text-indigo-500" />
+                      <span className="font-medium">
+                        {r.description?.trim() || "No description available."}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-slate-600">
+                      <MapPin className="w-4 h-4 text-indigo-500" />
+                      <span className="font-medium">
+                        Location: <b className="text-slate-800">{r.location || "N/A"}</b>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-slate-600">
+                      <CircleCheck className="w-4 h-4 text-indigo-500" />
+                      <span className="font-medium">
+                        Status: <b className="text-slate-800">{fmtStatus(r.status)}</b>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-slate-600">
+                      {isEquipment ? (
+                        <Layers className="w-4 h-4 text-indigo-500" />
+                      ) : (
+                        <Users className="w-4 h-4 text-indigo-500" />
+                      )}
+                      <span className="font-medium">
+                        {isEquipment ? "Quantity" : "Capacity"}:{" "}
+                        <b className="text-slate-800">{r.capacity ?? 0}</b>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-slate-600">
+                      <CalendarDays className="w-4 h-4 text-indigo-500" />
+                      <span className="font-medium">
+                        Added: <b className="text-slate-800">{fmtDate(r.createdAt)}</b>
+                      </span>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                      Type
-                    </p>
-                    <div className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-800">
-                      <Box className="h-4 w-4 text-violet-500" />
-                      {resource.type?.replaceAll("_", " ") || "Resource"}
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => !disabled && navigate(`/user/book/${r.id}`)}
+                    disabled={disabled}
+                    className={`mt-8 w-full group/btn flex items-center justify-center gap-3 py-4 rounded-2xl font-black transition-all shadow-lg
+                      ${
+                        disabled
+                          ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                          : "bg-slate-900 hover:bg-indigo-600 text-white hover:shadow-indigo-200"
+                      }`}
+                    title={disabled ? "This resource is not available for booking right now." : "Reserve this resource"}
+                  >
+                    {disabled ? "Not Available" : "Reserve Now"}
+                    {!disabled && (
+                      <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                    )}
+                  </button>
                 </div>
-
-                <button
-                  onClick={() => navigate(`/user/book/${resource.id}`)}
-                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_45%,#8B5CF6_75%,#A855F7_100%)] px-4 py-3.5 text-sm font-bold text-white shadow-[0_18px_40px_rgba(124,58,237,0.24)] transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_24px_55px_rgba(124,58,237,0.32)] active:scale-[0.99]"
-                >
-                  Book Now
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </button>
               </div>
-            </article>
-          ))}
-        </section>
+            );
+          })}
+        </div>
       )}
     </div>
   );

@@ -3,7 +3,6 @@
 
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import TopbarAccent from "../components/TopbarAccent";
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -13,18 +12,23 @@ import {
   Briefcase,
   Settings,
 } from "lucide-react";
+import { useNotifications } from "../context/NotificationContext";
+
 
 const NAV_ITEMS = [
-  { to: "/operation-manager/dashboard",      icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/operation-manager/resources",      icon: Box,             label: "Resources" },
-  { to: "/operation-manager/bookings",       icon: CalendarCheck,   label: "Bookings" },
-  { to: "/operation-manager/notifications",  icon: Bell,            label: "Notifications" },
-  { to: "/operation-manager/profile",        icon: Settings,        label: "Profile Settings" },
+  { to: "/operation-manager/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/operation-manager/resources", icon: Box, label: "Resources" },
+  { to: "/operation-manager/bookings", icon: CalendarCheck, label: "Bookings" },
+
+  { to: "/operation-manager/notifications", icon: Bell, label: "Notifications" },
+  { to: "/operation-manager/profile", icon: Settings, label: "Profile Settings" },
 ];
 
 export default function OpsLayout() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
+
 
   const handleLogout = () => {
     logout();
@@ -32,10 +36,9 @@ export default function OpsLayout() {
   };
 
   const navItemClass = ({ isActive }) =>
-    `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-      isActive
-        ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
-        : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
+    `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
+      ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
+      : "text-slate-600 hover:bg-indigo-50 hover:text-indigo-600"
     }`;
 
   const getPictureSrc = (picture) => {
@@ -50,11 +53,11 @@ export default function OpsLayout() {
         {/* LOGO */}
         <div className="p-8">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
               <Briefcase className="text-white w-5 h-5" />
             </div>
             <span className="text-xl font-black text-slate-800 tracking-tight">
-              Ops<span className="text-emerald-600">Panel</span>
+              Ops<span className="text-indigo-600">Panel</span>
             </span>
           </div>
         </div>
@@ -67,10 +70,18 @@ export default function OpsLayout() {
 
           {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
             <NavLink key={to} to={to} className={navItemClass} id={`ops-nav-${label.toLowerCase().replace(/\s+/g, "-")}`}>
-              <Icon className="w-5 h-5 flex-shrink-0" />
+              <div className="relative">
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                {label === "Notifications" && unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </div>
               {label}
             </NavLink>
           ))}
+
         </nav>
 
         {/* PROFILE + LOGOUT */}
@@ -83,8 +94,8 @@ export default function OpsLayout() {
                 className="w-10 h-10 rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Briefcase className="w-5 h-5 text-emerald-600" />
+              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Briefcase className="w-5 h-5 text-indigo-600" />
               </div>
             )}
 
@@ -119,15 +130,18 @@ export default function OpsLayout() {
             </span>
           </p>
 
-          <div className="flex items-center gap-3">
-            <TopbarAccent tone="emerald" label="Today" />
-            <NavLink
-              to="/operation-manager/notifications"
-              className="relative rounded-2xl border border-slate-200 p-2.5 text-slate-400 shadow-sm transition-colors hover:text-emerald-600"
-            >
-              <Bell className="w-6 h-6" />
-            </NavLink>
-          </div>
+          <NavLink
+            to="/operation-manager/notifications"
+            className="relative p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+          >
+            <Bell className="w-6 h-6" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 bg-rose-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </NavLink>
+
         </header>
 
         {/* PAGE CONTENT */}

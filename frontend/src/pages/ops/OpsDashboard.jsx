@@ -48,7 +48,7 @@ export default function OpsDashboard() {
   }));
 
   const statCards = [
-    { title: "Total Bookings",    value: stats.totalBookings,    icon: <CalendarCheck className="w-6 h-6 text-white" />, gradient: "from-emerald-500 to-emerald-700" },
+    { title: "Total Bookings",    value: stats.totalBookings,    icon: <CalendarCheck className="w-6 h-6 text-white" />, gradient: "from-indigo-500 to-indigo-700" },
     { title: "Pending Approval",  value: stats.pendingBookings,  icon: <Clock className="w-6 h-6 text-white" />,         gradient: "from-amber-400 to-amber-600" },
     { title: "Approved",          value: stats.approvedBookings, icon: <CheckCircle className="w-6 h-6 text-white" />,   gradient: "from-blue-500 to-blue-700" },
     { title: "Rejected",          value: stats.rejectedBookings, icon: <XCircle className="w-6 h-6 text-white" />,       gradient: "from-rose-500 to-rose-700" },
@@ -66,8 +66,8 @@ export default function OpsDashboard() {
             Real-time overview of resources, bookings and system activity.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
-          <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+        <div className="flex items-center gap-2 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-full">
+          <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
           Live Data
         </div>
       </div>
@@ -89,7 +89,7 @@ export default function OpsDashboard() {
               <h3 className="text-lg font-bold text-slate-700">Booking Activity</h3>
               <p className="text-xs text-slate-400 mt-0.5">Daily booking volume</p>
             </div>
-            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full">
               Last 7 Days
             </span>
           </div>
@@ -103,7 +103,7 @@ export default function OpsDashboard() {
                   cursor={{ fill: "#f8fafc" }}
                   contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 20px -4px rgba(0,0,0,0.1)" }}
                 />
-                <Bar dataKey="bookings" fill="#10b981" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="bookings" fill="#6366f1" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -192,10 +192,10 @@ export default function OpsDashboard() {
         </div>
 
         {/* QUICK ACTIONS CARD */}
-        <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 p-6 rounded-3xl shadow-lg text-white flex flex-col justify-between gap-4">
+        <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-6 rounded-3xl shadow-lg text-white flex flex-col justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold mb-2">Pending Requests</h2>
-            <p className="text-emerald-100 leading-relaxed">
+            <p className="text-indigo-100 leading-relaxed">
               There are currently{" "}
               <span className="font-black text-white text-xl">{stats.pendingBookings}</span>{" "}
               bookings awaiting your approval.{" "}
@@ -208,18 +208,18 @@ export default function OpsDashboard() {
           {/* Mini stat grid */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white/10 rounded-2xl p-4">
-              <p className="text-emerald-200 text-xs font-bold uppercase tracking-widest mb-1">Resources</p>
+              <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1">Resources</p>
               <p className="text-2xl font-black">{stats.totalResources}</p>
             </div>
             <div className="bg-white/10 rounded-2xl p-4">
-              <p className="text-emerald-200 text-xs font-bold uppercase tracking-widest mb-1">Users</p>
+              <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1">Users</p>
               <p className="text-2xl font-black">{stats.totalUsers}</p>
             </div>
           </div>
 
           <button
             onClick={() => navigate("/operation-manager/bookings")}
-            className="w-full flex items-center justify-center gap-2 bg-white text-emerald-700 font-bold py-3 px-6 rounded-xl hover:bg-emerald-50 active:scale-95 transition-all"
+            className="w-full flex items-center justify-center gap-2 bg-white text-indigo-700 font-bold py-3 px-6 rounded-xl hover:bg-indigo-50 active:scale-95 transition-all"
           >
             Review Bookings <ArrowRight className="w-4 h-4" />
           </button>

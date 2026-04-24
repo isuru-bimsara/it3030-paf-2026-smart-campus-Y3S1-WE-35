@@ -1,40 +1,62 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  AlertCircle,
-  ArrowRight,
-  CalendarDays,
-  CheckCircle2,
-  Clock,
-  Image as ImageIcon,
-  Layers,
-  Loader2,
-  MessageSquare,
-  PlusCircle,
-  Send,
-  Ticket,
-} from "lucide-react";
 import { ticketsApi } from "../../api/tickets";
-import { useAuth } from "../../context/AuthContext";
+import { bookingsApi } from "../../api/bookings";
 import TicketComments from "../TicketComments";
+import {
+  PlusCircle,
+  Ticket,
+  MessageSquare,
+  Layers,
+  Image as ImageIcon,
+  Send,
+  Loader2,
+  Info,
+  X,
+  CheckCircle2,
+  Eye,
+  XCircle,
+  ShieldAlert,
+  Search,
+  Filter,
+  Calendar,
+  AlertTriangle,
+  History,
+  ArrowRight
+} from "lucide-react";
 
 export default function UserTickets() {
   const [tickets, setTickets] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [form, setForm] = useState({
     title: "",
     description: "",
-    contactDetails: "",
     category: "",
-    priority: "",
+    priority: "MEDIUM",
+    contactDetails: "",
+    isOther: false,
+    bookingId: "",
   });
+
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentTicketId, setCommentTicketId] = useState(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { user } = useAuth();
 
+  const [detailModal, setDetailModal] = useState({
+    open: false,
+    ticket: null,
+    ackLoading: false,
+  });
+
+  const [highlightTicketId, setHighlightTicketId] = useState(null);
+
+  const rowRefs = useRef({});
+  const [searchParams, setSearchParams] = useSearchParams();
   const ticketIdFromQuery = searchParams.get("ticketId");
   const openCommentsFromQuery = searchParams.get("openComments") === "true";
 
@@ -50,17 +72,19 @@ export default function UserTickets() {
     }
   };
 
+  const fetchBookings = async () => {
+    try {
+      const res = await bookingsApi.getMyBookings();
+      setBookings(res.data.data || []);
+    } catch (err) {
+      console.error("Failed to fetch bookings", err);
+    }
+  };
+
   useEffect(() => {
     fetchTickets();
+    fetchBookings();
   }, []);
-
-  useEffect(() => {
-    if (!user?.email) return;
-
-    setForm((prev) =>
-      prev.contactDetails ? prev : { ...prev, contactDetails: user.email },
-    );
-  }, [user]);
 
   useEffect(() => {
     if (fetching || !ticketIdFromQuery) return;
@@ -68,612 +92,733 @@ export default function UserTickets() {
     const ticketIdNum = Number(ticketIdFromQuery);
     if (Number.isNaN(ticketIdNum)) return;
 
-    const exists = tickets.some((t) => Number(t.id) === ticketIdNum);
-    if (exists && openCommentsFromQuery) {
+    const target = tickets.find((t) => Number(t.id) === ticketIdNum);
+    if (!target) return;
+
+    setHighlightTicketId(ticketIdNum);
+
+    if (openCommentsFromQuery) {
       setCommentTicketId(ticketIdNum);
       setCommentOpen(true);
+    } else {
+      openTicketDetails(target);
     }
 
-    const timeout = setTimeout(() => {
-      setSearchParams({}, { replace: true });
-    }, 0);
+    setTimeout(() => {
+      rowRefs.current[ticketIdNum]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 80);
 
-    return () => clearTimeout(timeout);
-  }, [
-    fetching,
-    openCommentsFromQuery,
-    setSearchParams,
-    ticketIdFromQuery,
-    tickets,
-  ]);
+    const timeout = setTimeout(() => setSearchParams({}, { replace: true }), 0);
+    const clearHighlight = setTimeout(() => setHighlightTicketId(null), 3500);
 
-  const sortedTickets = useMemo(() => {
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(clearHighlight);
+    };
+  }, [fetching, ticketIdFromQuery, openCommentsFromQuery, tickets, setSearchParams]);
+
+  const stats = useMemo(() => {
+    return {
+      total: tickets.length,
+      open: tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length,
+      resolved: tickets.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length
+    };
+  }, [tickets]);
+
+  const filteredTickets = useMemo(() => {
+    let result = [...tickets];
+    
+    if (filterStatus !== "ALL") {
+      result = result.filter(t => t.status === filterStatus);
+    }
+
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      result = result.filter(t => 
+        t.title.toLowerCase().includes(lower) || 
+        t.description.toLowerCase().includes(lower) ||
+        t.id.toString().includes(lower)
+      );
+    }
+
     const statusPriority = {
       OPEN: 1,
       IN_PROGRESS: 2,
       RESOLVED: 3,
-      CLOSED: 4,
+      REJECTED: 4,
+      CLOSED: 5,
     };
 
-    return [...tickets].sort((a, b) => {
-      const priorityA = statusPriority[a.status] || 5;
-      const priorityB = statusPriority[b.status] || 5;
-
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
-
+    return result.sort((a, b) => {
+      const pa = statusPriority[a.status] || 6;
+      const pb = statusPriority[b.status] || 6;
+      if (pa !== pb) return pa - pb;
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
-  }, [tickets]);
-
-  const ticketStats = useMemo(() => {
-    const openCount = tickets.filter((ticket) => ticket.status === "OPEN").length;
-    const inProgressCount = tickets.filter(
-      (ticket) => ticket.status === "IN_PROGRESS",
-    ).length;
-    const resolvedCount = tickets.filter((ticket) =>
-      ["RESOLVED", "CLOSED"].includes(ticket.status),
-    ).length;
-    const criticalCount = tickets.filter(
-      (ticket) => ticket.priority === "CRITICAL",
-    ).length;
-
-    return [
-      {
-        label: "Open Requests",
-        value: openCount,
-        detail: "Active issues waiting for action",
-        icon: AlertCircle,
-      },
-      {
-        label: "In Progress",
-        value: inProgressCount,
-        detail: "Currently being reviewed by the team",
-        icon: Clock,
-      },
-      {
-        label: "Resolved",
-        value: resolvedCount,
-        detail: "Completed or closed support requests",
-        icon: CheckCircle2,
-      },
-      {
-        label: "Critical",
-        value: criticalCount,
-        detail: "High-priority incidents flagged urgently",
-        icon: Layers,
-      },
-    ];
-  }, [tickets]);
+  }, [tickets, searchTerm, filterStatus]);
 
   function handleChange(e) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value, type, checked } = e.target;
+    setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
   }
 
   function handleImageChange(e) {
-    setImages(Array.from(e.target.files));
+    const files = Array.from(e.target.files || []);
+    setImages((prev) => {
+      const next = [...prev, ...files];
+      if (next.length > 3) {
+        alert("Maximum 3 images allowed. Keeping first 3.");
+        return next.slice(0, 3);
+      }
+      return next;
+    });
+  }
+
+  function removeImage(index) {
+    setImages((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
 
-    const fd = new FormData();
-    fd.append(
-      "ticket",
-      new Blob([JSON.stringify(form)], { type: "application/json" }),
-    );
+    const ticketData = { ...form };
 
-    for (let i = 0; i < images.length; i += 1) {
-      fd.append("images", images[i]);
+    if (form.isOther) {
+      ticketData.bookingId = null;
+      ticketData.resourceId = null;
+    } else if (form.bookingId) {
+      const selectedBooking = bookings.find((b) => b.id === Number(form.bookingId));
+      ticketData.resourceId = selectedBooking?.resourceId;
     }
+
+    const fd = new FormData();
+    fd.append("ticket", new Blob([JSON.stringify(ticketData)], { type: "application/json" }));
+    images.forEach((img) => fd.append("images", img));
 
     try {
       await ticketsApi.create(fd);
-      alert("Ticket created successfully!");
       setForm({
         title: "",
         description: "",
-        contactDetails: user?.email || "",
         category: "",
-        priority: "",
+        priority: "MEDIUM",
+        contactDetails: "",
+        isOther: false,
+        bookingId: "",
       });
       setImages([]);
-      fetchTickets();
+      await fetchTickets();
     } catch (err) {
-      const fieldErrors = err.response?.data?.data;
-      const firstFieldError =
-        fieldErrors && typeof fieldErrors === "object"
-          ? Object.values(fieldErrors)[0]
-          : null;
-
-      alert(firstFieldError || err.response?.data?.message || err.message);
+      alert("❌ " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
   }
 
+  const normalizeImageUrl = (img) => {
+    if (!img) return "";
+    if (img.startsWith("http")) return img;
+    if (img.startsWith("/uploads")) return img;
+    if (img.startsWith("uploads")) return `/${img}`;
+    return `/uploads/${img}`;
+  };
+
+  const openTicketDetails = async (ticket) => {
+    if (ticket.status === "RESOLVED") {
+      try {
+        await ticketsApi.markResolutionViewed(ticket.id);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setDetailModal({ open: true, ticket, ackLoading: false });
+  };
+
+  const closeTicketByUser = async () => {
+    const t = detailModal.ticket;
+    if (!t) return;
+    if (t.status === "CLOSED") return;
+
+    if (!window.confirm("Are you sure you want to close this ticket?")) return;
+
+    setDetailModal((p) => ({ ...p, ackLoading: true }));
+    try {
+      await ticketsApi.acknowledgeResolution(t.id);
+      setDetailModal({ open: false, ticket: null, ackLoading: false });
+      await fetchTickets();
+    } catch (err) {
+      alert("❌ " + (err.response?.data?.message || "Failed to close ticket"));
+      setDetailModal((p) => ({ ...p, ackLoading: false }));
+    }
+  };
+
   const getStatusStyle = (status) => {
     switch (status) {
       case "OPEN":
-        return "bg-rose-50 text-rose-700 border-rose-200 ring-rose-500/20";
+        return "bg-rose-500/10 text-rose-600 border-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.1)]";
       case "IN_PROGRESS":
-        return "bg-blue-50 text-blue-700 border-blue-200 ring-blue-500/20";
+        return "bg-blue-500/10 text-blue-600 border-blue-200 shadow-[0_0_15px_rgba(59,130,246,0.1)]";
       case "RESOLVED":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-500/20";
+        return "bg-emerald-500/10 text-emerald-600 border-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.1)]";
+      case "REJECTED":
+        return "bg-orange-500/10 text-orange-600 border-orange-200 shadow-[0_0_15px_rgba(249,115,22,0.1)]";
       case "CLOSED":
-        return "bg-slate-50 text-slate-600 border-slate-200 ring-slate-500/20";
+        return "bg-slate-500/10 text-slate-500 border-slate-200 shadow-[0_0_15px_rgba(100,116,139,0.1)]";
       default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
+        return "bg-gray-500/10 text-gray-600 border-gray-200";
     }
   };
 
   const getPriorityStyle = (priority) => {
     switch (priority) {
-      case "CRITICAL":
-        return "bg-rose-50 text-rose-700 border-rose-200";
-      case "HIGH":
-        return "bg-orange-50 text-orange-700 border-orange-200";
-      case "MEDIUM":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      default:
-        return "bg-sky-50 text-sky-700 border-sky-200";
+      case "LOW": return "text-emerald-500 bg-emerald-50";
+      case "MEDIUM": return "text-blue-500 bg-blue-50";
+      case "HIGH": return "text-orange-500 bg-orange-50";
+      case "CRITICAL": return "text-rose-500 bg-rose-50";
+      default: return "text-slate-500 bg-slate-50";
     }
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "Just now";
-
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+    
+    if (diffHrs < 1) return "Just now";
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    if (diffHrs < 48) return "Yesterday";
+    
     return new Intl.DateTimeFormat("en-GB", {
       day: "numeric",
       month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(dateString));
+    }).format(date);
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-20 p-6 md:p-0">
-      <style>{`
-        @keyframes ticketFadeUp {
-          0% { opacity: 0; transform: translate3d(0, 16px, 0); }
-          100% { opacity: 1; transform: translate3d(0, 0, 0); }
-        }
-
-        @keyframes ticketFloat {
-          0%, 100% { transform: translate3d(0, 0, 0); }
-          50% { transform: translate3d(0, -8px, 0); }
-        }
-
-        @keyframes ticketGradientStream {
-          0% { transform: translateX(-20%); opacity: 0.55; }
-          50% { transform: translateX(18%); opacity: 1; }
-          100% { transform: translateX(-20%); opacity: 0.55; }
-        }
-
-        .ticket-fade-up {
-          animation: ticketFadeUp 700ms ease-out both;
-        }
-
-        .ticket-float {
-          animation: ticketFloat 8s ease-in-out infinite;
-        }
-
-        .ticket-gradient-line {
-          animation: ticketGradientStream 8.5s ease-in-out infinite;
-        }
-      `}</style>
-
-      <section className="relative overflow-hidden rounded-[38px] border border-white/60 bg-[linear-gradient(135deg,#faf5ff_0%,#f3e8ff_40%,#eef2ff_100%)] px-6 py-8 shadow-[0_30px_95px_rgba(124,58,237,0.14)] md:px-8 xl:px-10">
-        <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-violet-300/30 blur-3xl" />
-        <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-purple-300/25 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-10 left-1/3 h-56 w-56 rounded-full bg-fuchsia-300/20 blur-3xl" />
-        <div className="pointer-events-none absolute right-24 bottom-0 h-44 w-44 rounded-full bg-indigo-300/20 blur-3xl" />
-
-        <div className="relative z-10 grid gap-8 xl:grid-cols-[1.1fr_0.9fr] xl:items-end">
-          <div className="ticket-fade-up space-y-6">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200/80 bg-white/80 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-violet-700 shadow-sm backdrop-blur-xl">
-                <Ticket className="h-3.5 w-3.5" />
-                 Support Center
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-violet-700 shadow-[0_14px_34px_rgba(124,58,237,0.10)] backdrop-blur-xl">
-                SMART SUPPORT
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-sm font-bold tracking-[0.08em] text-violet-600">
-                Fast help for every campus issue
-              </p>
-              <h1 className="max-w-3xl text-4xl font-black tracking-[-0.06em] text-slate-950 md:text-5xl xl:text-6xl">
-                Submit smarter requests,
-                <span className="block bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_42%,#8B5CF6_72%,#A855F7_100%)] bg-clip-text tracking-[-0.05em] text-transparent">
-                  track every update beautifully
-                </span>
-              </h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
-                Send maintenance or support requests with clear details,
-                attachments, and contact info, then follow each status change
-                from one polished workspace.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {ticketStats.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <div
-                    key={stat.label}
-                    className="rounded-3xl border border-white/50 bg-white/70 p-5 shadow-[0_20px_60px_rgba(124,58,237,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(124,58,237,0.18)]"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="rounded-2xl bg-[linear-gradient(135deg,#ede9fe_0%,#f5f3ff_100%)] p-3 text-violet-700">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <span className="rounded-full border border-violet-100 bg-violet-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-600">
-                        Live
-                      </span>
-                    </div>
-                    <p className="mt-5 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
-                      {stat.label}
-                    </p>
-                    <p className="mt-2 text-4xl font-black tracking-tight text-slate-950">
-                      {stat.value}
-                    </p>
-                    <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
-                      {stat.detail}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="h-[6px] overflow-hidden rounded-full bg-white/60 shadow-inner">
-              <div className="ticket-gradient-line h-full w-[55%] rounded-full bg-[linear-gradient(90deg,#6D28D9_0%,#7C3AED_35%,#8B5CF6_70%,#A855F7_100%)] shadow-[0_0_30px_rgba(124,58,237,0.35)]" />
-            </div>
+    <div className="max-w-7xl mx-auto space-y-8 pb-20 p-4 md:p-8 font-sans">
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-5">
+          <div className="p-4 bg-indigo-600 rounded-[2rem] shadow-2xl shadow-indigo-200 rotate-3 hover:rotate-0 transition-transform duration-500">
+            <Ticket className="text-white w-8 h-8" />
           </div>
-
-          <div className="ticket-float ticket-fade-up rounded-[36px] border border-white/60 bg-white/70 p-5 shadow-[0_28px_80px_rgba(124,58,237,0.14)] backdrop-blur-2xl" style={{ animationDelay: "120ms" }}>
-            <div className="rounded-[30px] bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_42%,#8B5CF6_74%,#A855F7_100%)] p-6 text-white shadow-[0_22px_56px_rgba(124,58,237,0.28)]">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-violet-100">
-                    Support Snapshot
-                  </p>
-                  <h2 className="mt-3 text-2xl font-black tracking-tight">
-                    {sortedTickets.length > 0
-                      ? "Your requests are organized and visible"
-                      : "Start your first support request in seconds"}
-                  </h2>
-                </div>
-                <div className="rounded-2xl bg-white/15 p-3 backdrop-blur">
-                  <Ticket className="h-6 w-6" />
-                </div>
-              </div>
-
-              <div className="mt-8 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-white/15 px-4 py-4 backdrop-blur">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-100">
-                    Contact
-                  </p>
-                  <p className="mt-2 text-sm font-bold text-white/95 break-all">
-                    {form.contactDetails || user?.email || "Not provided"}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/15 px-4 py-4 backdrop-blur">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-100">
-                    Latest Activity
-                  </p>
-                  <p className="mt-2 text-sm font-bold text-white/95">
-                    {sortedTickets[0]?.createdAt
-                      ? formatDate(sortedTickets[0].createdAt)
-                      : "No requests yet"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-white/90">
-                Everything stays synced with your technician updates
-                <ArrowRight className="h-4 w-4" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="grid grid-cols-1 gap-8 xl:grid-cols-12 xl:items-start">
-        <div className="xl:col-span-4 overflow-hidden rounded-[32px] border border-white/60 bg-white/72 shadow-[0_20px_60px_rgba(124,58,237,0.10)] backdrop-blur-xl sticky top-6">
-          <div className="border-b border-violet-100 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_100%)] px-6 py-6">
-            <h2 className="flex items-center gap-2 text-xl font-black text-slate-900">
-              <PlusCircle className="h-5 w-5 text-violet-600" />
-              New Support Request
-            </h2>
-            <p className="mt-2 text-sm font-medium text-slate-500">
-              Share the issue clearly and our team can move faster.
+          <div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Support Hub</h1>
+            <p className="text-slate-500 font-medium mt-1 flex items-center gap-2">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              Manage your support tickets and resolutions.
             </p>
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5 p-6">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">
-                Subject
-              </label>
-              <input
-                className="w-full rounded-[24px] border border-white/60 bg-white/75 px-4 py-3.5 text-sm font-medium text-slate-700 outline-none transition-all duration-300 focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_18px_34px_rgba(124,58,237,0.12)]"
-                required
-                name="title"
-                placeholder="Brief summary of the issue"
-                value={form.title}
-                onChange={handleChange}
-              />
+        {/* QUICK STATS */}
+        <div className="flex gap-4">
+          {[
+            { label: 'Active', value: stats.open, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+            { label: 'Resolved', value: stats.resolved, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'Total', value: stats.total, color: 'text-slate-600', bg: 'bg-slate-50' }
+          ].map((s, i) => (
+            <div key={i} className={`${s.bg} px-6 py-3 rounded-2xl border border-white shadow-sm`}>
+              <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* LEFT COLUMN: CREATE FORM */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/40 p-8 sticky top-8">
+            <div className="mb-8">
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight">Open a Ticket</h2>
+              <p className="text-slate-400 text-sm mt-1 font-medium">Describe your issue and we'll help you out.</p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">
-                Details
-              </label>
-              <textarea
-                className="w-full resize-none rounded-[24px] border border-white/60 bg-white/75 px-4 py-3.5 text-sm font-medium leading-relaxed text-slate-700 outline-none transition-all duration-300 focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_18px_34px_rgba(124,58,237,0.12)]"
-                required
-                name="description"
-                placeholder="Describe the problem in detail..."
-                rows={5}
-                value={form.description}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">
-                Contact Details
-              </label>
-              <input
-                className="w-full rounded-[24px] border border-white/60 bg-white/75 px-4 py-3.5 text-sm font-medium text-slate-700 outline-none transition-all duration-300 focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_18px_34px_rgba(124,58,237,0.12)]"
-                required
-                name="contactDetails"
-                placeholder="Email or phone number for follow-up"
-                value={form.contactDetails}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">
-                  Category
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Issue Summary</label>
+                <input
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all outline-none text-sm font-semibold"
+                  required
+                  name="title"
+                  placeholder="What's the problem?"
+                  value={form.title}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="pt-2">
+                <label className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl cursor-pointer hover:bg-slate-100/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    name="isOther"
+                    className="w-5 h-5 rounded-lg text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                    checked={form.isOther}
+                    onChange={handleChange}
+                  />
+                  <div>
+                    <span className="text-sm font-bold text-slate-700">General Inquiry</span>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Not linked to a specific booking</p>
+                  </div>
                 </label>
-                <div className="relative">
-                  <Layers className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+
+                {!form.isOther && (
+                  <div className="mt-3 space-y-1.5">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Select Booking</label>
+                    <select
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all outline-none text-sm font-semibold appearance-none cursor-pointer"
+                      name="bookingId"
+                      required={!form.isOther}
+                      value={form.bookingId}
+                      onChange={handleChange}
+                    >
+                      <option value="">Choose a recent booking...</option>
+                      {bookings.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.resourceName} • {formatDate(b.startTime)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Details</label>
+                <textarea
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all outline-none text-sm font-semibold resize-none"
+                  required
+                  rows={3}
+                  name="description"
+                  placeholder="Provide as much detail as possible..."
+                  value={form.description}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Category</label>
                   <select
-                    className="w-full appearance-none rounded-[24px] border border-white/60 bg-white/75 py-3 pl-9 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all duration-300 cursor-pointer focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_18px_34px_rgba(124,58,237,0.12)]"
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all outline-none text-sm font-semibold appearance-none cursor-pointer"
                     name="category"
                     required
                     value={form.category}
                     onChange={handleChange}
                   >
-                    <option value="" disabled>
-                      Select...
-                    </option>
+                    <option value="">Type</option>
                     <option value="ELECTRICAL">Electrical</option>
                     <option value="PLUMBING">Plumbing</option>
                     <option value="HVAC">HVAC</option>
-                    <option value="IT">IT Support</option>
+                    <option value="IT">IT</option>
                     <option value="CLEANING">Cleaning</option>
                     <option value="OTHER">Other</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">
-                  Priority
-                </label>
-                <div className="relative">
-                  <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Priority</label>
                   <select
-                    className="w-full appearance-none rounded-[24px] border border-white/60 bg-white/75 py-3 pl-9 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all duration-300 cursor-pointer focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_18px_34px_rgba(124,58,237,0.12)]"
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all outline-none text-sm font-semibold appearance-none cursor-pointer"
                     name="priority"
                     required
                     value={form.priority}
                     onChange={handleChange}
                   >
-                    <option value="" disabled>
-                      Level...
-                    </option>
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
-                    <option value="CRITICAL">Critical</option>
+                    <option value="LOW">LOW</option>
+                    <option value="MEDIUM">MEDIUM</option>
+                    <option value="HIGH">HIGH</option>
+                    <option value="CRITICAL">CRITICAL</option>
                   </select>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">
-                Attachments (Max 3)
-              </label>
-              <label className="flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-[26px] border-2 border-dashed border-violet-200 bg-[linear-gradient(135deg,#faf5ff_0%,#ffffff_100%)] transition-all duration-300 hover:border-violet-300 hover:bg-violet-50/50 hover:shadow-[0_16px_34px_rgba(124,58,237,0.10)]">
-                <div className="flex flex-col items-center justify-center pt-2">
-                  <div className="rounded-2xl bg-white p-3 shadow-sm">
-                    <ImageIcon className="h-6 w-6 text-violet-500" />
-                  </div>
-                  <p className="mt-3 text-xs font-medium text-slate-500">
-                    {images.length > 0 ? (
-                      <span className="font-bold text-violet-600">
-                        {images.length} file(s) ready
-                      </span>
-                    ) : (
-                      "Upload photos of the issue"
-                    )}
-                  </p>
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Contact Info</label>
                 <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all outline-none text-sm font-semibold"
+                  required
+                  name="contactDetails"
+                  placeholder="Email or phone"
+                  value={form.contactDetails}
+                  onChange={handleChange}
                 />
-              </label>
-            </div>
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_45%,#8B5CF6_75%,#A855F7_100%)] py-3.5 font-bold text-white shadow-[0_18px_40px_rgba(124,58,237,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_24px_55px_rgba(124,58,237,0.34)] active:scale-[0.99] disabled:bg-slate-300 disabled:shadow-none"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  <Send className="w-5 h-5" /> Submit Request
-                </>
-              )}
-            </button>
-          </form>
+              <div className="pt-2">
+                <label className="group flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded-[2rem] cursor-pointer bg-slate-50/50 hover:bg-indigo-50/50 hover:border-indigo-300 transition-all">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <ImageIcon className="w-8 h-8 text-slate-300 group-hover:text-indigo-500 transition-colors mb-2" />
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
+                      {images.length > 0 ? `${images.length} Selected` : "Attach Evidence"}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-tighter font-medium">Max 3 images</p>
+                  </div>
+                  <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
+                </label>
+
+                {images.length > 0 && (
+                  <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
+                    {images.map((img, idx) => (
+                      <div key={idx} className="relative group shrink-0">
+                        <img
+                          src={URL.createObjectURL(img)}
+                          alt="preview"
+                          className="w-16 h-16 rounded-2xl object-cover ring-2 ring-white shadow-md"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(idx)}
+                          className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 shadow-lg scale-0 group-hover:scale-100 transition-transform"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-slate-900 hover:bg-indigo-600 text-white font-black py-5 rounded-[2rem] flex items-center justify-center gap-3 shadow-xl shadow-slate-200 transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 mt-6"
+              >
+                {loading ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  <>
+                    Submit Ticket <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
         </div>
 
-        <div className="xl:col-span-8 overflow-hidden rounded-[32px] border border-white/60 bg-white/72 shadow-[0_20px_60px_rgba(124,58,237,0.10)] backdrop-blur-xl h-fit">
-          <div className="flex flex-col gap-4 border-b border-violet-100 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_100%)] p-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="flex items-center gap-2 text-xl font-black text-slate-900">
-                <Layers className="h-5 w-5 text-violet-600" />
-                Your Ticket History
-              </h3>
-              <p className="mt-2 text-sm font-medium text-slate-500">
-                Premium timeline of your recent requests, priorities, and updates.
-              </p>
+        {/* RIGHT COLUMN: LIST */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* FILTERS & SEARCH */}
+          <div className="bg-white p-4 md:p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+              <input 
+                type="text" 
+                placeholder="Search tickets by ID, title or description..."
+                className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-50 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-300 transition-all outline-none text-sm font-semibold"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            <div className="w-fit rounded-full border border-violet-100 bg-violet-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-violet-600">
-              {sortedTickets.length} Total
+            <div className="flex gap-2 w-full md:w-auto">
+              <div className="relative w-full">
+                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <select 
+                  className="w-full md:w-40 pl-10 pr-6 py-4 bg-slate-50 border border-slate-50 rounded-2xl focus:bg-white transition-all outline-none text-sm font-bold appearance-none cursor-pointer"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="OPEN">Open</option>
+                  <option value="IN_PROGRESS">Processing</option>
+                  <option value="RESOLVED">Resolved</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="CLOSED">Closed</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <div>
+          {/* TICKET LIST */}
+          <div className="space-y-4">
             {fetching ? (
-              <div className="p-20 text-center animate-pulse">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-violet-50">
-                  <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
+              <div className="py-32 text-center bg-white rounded-[2.5rem] border border-slate-100">
+                <div className="relative inline-block">
+                  <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+                  <Ticket className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-indigo-600" />
                 </div>
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                  Loading History...
-                </p>
+                <p className="text-slate-400 font-black text-xs uppercase tracking-[0.3em] mt-6 animate-pulse">Syncing Support Data...</p>
               </div>
-            ) : sortedTickets.length === 0 ? (
-              <div className="p-20 text-center">
-                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-violet-100 bg-violet-50">
-                  <Clock className="h-8 w-8 text-violet-300" />
+            ) : filteredTickets.length === 0 ? (
+              <div className="py-32 text-center bg-white rounded-[2.5rem] border border-slate-100">
+                <div className="p-6 bg-slate-50 inline-block rounded-full mb-6">
+                  <Info className="w-12 h-12 text-slate-200" />
                 </div>
-                <p className="text-lg font-bold text-slate-700">
-                  No tickets found
-                </p>
-                <p className="mt-2 text-sm text-slate-400">
-                  Your submitted requests will appear here.
-                </p>
+                <h3 className="text-xl font-black text-slate-800">No tickets found</h3>
+                <p className="text-slate-400 text-sm mt-2 max-w-xs mx-auto font-medium">We couldn't find any tickets matching your current filters or search terms.</p>
+                {(searchTerm || filterStatus !== "ALL") && (
+                  <button 
+                    onClick={() => { setSearchTerm(""); setFilterStatus("ALL"); }}
+                    className="mt-6 text-indigo-600 font-bold text-sm hover:underline"
+                  >
+                    Clear all filters
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="space-y-4 p-6">
-                {sortedTickets.map((t) => (
-                  <article
+              filteredTickets.map((t) => {
+                const isHighlighted = Number(highlightTicketId) === Number(t.id);
+                const statusStyle = getStatusStyle(t.status);
+                const priorityStyle = getPriorityStyle(t.priority);
+
+                return (
+                  <div
                     key={t.id}
-                    className="group rounded-[28px] border border-white/60 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_100%)] p-5 shadow-[0_14px_40px_rgba(124,58,237,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.005] hover:border-violet-200 hover:shadow-[0_24px_55px_rgba(124,58,237,0.14)]"
+                    ref={(el) => { rowRefs.current[t.id] = el; }}
+                    onClick={() => openTicketDetails(t)}
+                    className={`group relative bg-white rounded-3xl border transition-all duration-500 cursor-pointer p-6 flex flex-col md:flex-row gap-6 items-start md:items-center ${
+                      isHighlighted 
+                      ? "border-amber-300 ring-4 ring-amber-100 shadow-xl shadow-amber-100/50" 
+                      : "border-slate-100 hover:border-indigo-200 hover:shadow-2xl hover:shadow-indigo-100/40"
+                    }`}
                   >
-                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-start gap-3">
-                          <div className="rounded-2xl bg-[linear-gradient(135deg,#ede9fe_0%,#f5f3ff_100%)] p-3 text-violet-700">
-                            <Ticket className="h-5 w-5" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h4 className="truncate text-lg font-black tracking-tight text-slate-900">
-                                {t.title}
-                              </h4>
-                              <span
-                                className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${getPriorityStyle(t.priority)}`}
-                              >
-                                {t.priority}
-                              </span>
-                            </div>
-                            <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
-                              {t.description || "No additional description provided."}
-                            </p>
-                          </div>
-                        </div>
+                    {/* Status Accent Line */}
+                    {!t.read && (
+                      <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-indigo-600 rounded-r-full" />
+                    )}
 
-                        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                          <div className="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 backdrop-blur">
-                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                              Status
-                            </p>
-                            <div className="mt-2">
-                              <span
-                                className={`inline-flex items-center justify-center rounded-xl border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] ring-1 ${getStatusStyle(t.status)}`}
-                              >
-                                {t.status.replace("_", " ")}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 backdrop-blur">
-                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                              Created
-                            </p>
-                            <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                              <CalendarDays className="h-4 w-4 text-violet-500" />
-                              {formatDate(t.createdAt)}
-                            </div>
-                          </div>
-
-                          <div className="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 backdrop-blur">
-                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                              Evidence
-                            </p>
-                            <div className="mt-2">
-                              {t.images && t.images.length > 0 ? (
-                                <div className="flex -space-x-2 overflow-hidden">
-                                  {t.images.slice(0, 3).map((img, idx) => (
-                                    <img
-                                      key={idx}
-                                      src={img.startsWith("http") ? img : `/${img}`}
-                                      alt="Attachment"
-                                      className="inline-block h-10 w-10 rounded-xl bg-slate-100 object-cover ring-2 ring-white shadow-sm"
-                                    />
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="inline-flex rounded-full bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-400">
-                                  No attachments
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                    {/* Left: Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-transparent ${statusStyle}`}>
+                          {t.status.replace("_", " ")}
+                        </span>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${priorityStyle}`}>
+                          {t.priority}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">#{t.id}</span>
+                      </div>
+                      <h3 className="text-lg font-black text-slate-800 tracking-tight mb-1 truncate group-hover:text-indigo-600 transition-colors">{t.title}</h3>
+                      <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" /> {formatDate(t.createdAt)}
+                        </span>
+                        <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                        <span className="flex items-center gap-1.5">
+                          <Layers className="w-3.5 h-3.5" /> {t.isOther ? "General" : t.resourceName}
+                        </span>
                       </div>
 
-                      <div className="flex shrink-0 items-center">
-                        <button
-                          onClick={() => {
-                            setCommentTicketId(t.id);
-                            setCommentOpen(true);
-                          }}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-sm font-bold text-violet-700 shadow-[0_12px_30px_rgba(124,58,237,0.10)] backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.02] hover:border-violet-200 hover:bg-violet-50 hover:shadow-[0_18px_40px_rgba(124,58,237,0.18)] active:scale-[0.99] whitespace-nowrap"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                          View Log
-                        </button>
-                      </div>
+                      {t.status === "REJECTED" && t.rejectionReason && (
+                        <div className="mt-4 flex items-start gap-3 p-3 bg-rose-50 rounded-2xl border border-rose-100">
+                          <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                          <p className="text-[11px] text-rose-700 font-semibold line-clamp-1">Rejected: {t.rejectionReason}</p>
+                        </div>
+                      )}
+
+                      {t.resolutionExplanation && (
+                        <div className="mt-4 flex items-start gap-3 p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                          <p className="text-[11px] text-emerald-700 font-semibold">Resolution available — click to view</p>
+                        </div>
+                      )}
                     </div>
-                  </article>
-                ))}
-              </div>
+
+                    {/* Middle: Assignee */}
+                    <div className="flex flex-col items-center md:items-end md:text-right shrink-0">
+                      <div className="flex -space-x-2 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-[10px] font-black text-indigo-600">
+                          {t.assigneeName ? t.assigneeName.charAt(0) : "?"}
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Technician</span>
+                      <span className="text-xs font-bold text-slate-600 mt-0.5">{t.assigneeName || "Awaiting Assignment"}</span>
+                    </div>
+
+                    {/* Right: Actions */}
+                    <div className="flex gap-2 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-slate-50" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => {
+                          setCommentTicketId(t.id);
+                          setCommentOpen(true);
+                        }}
+                        className="flex-1 md:flex-none p-4 md:p-3 bg-white border border-slate-100 rounded-2xl hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm group/btn"
+                        title="Conversation Log"
+                      >
+                        <MessageSquare className="w-5 h-5 text-slate-400 group-hover/btn:text-indigo-600 transition-colors mx-auto" />
+                      </button>
+                      <button
+                        onClick={() => openTicketDetails(t)}
+                        className="flex-1 md:flex-none p-4 md:p-3 bg-indigo-600 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 group/btn"
+                        title="View Details"
+                      >
+                        <Eye className="w-5 h-5 text-white mx-auto" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
       </div>
+
+      {/* TICKET DETAIL MODAL */}
+      {detailModal.open && detailModal.ticket && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl transition-opacity" onClick={() => setDetailModal({ open: false, ticket: null, ackLoading: false })} />
+          
+          <div className="relative bg-white w-full max-w-4xl rounded-[3rem] shadow-2xl overflow-hidden border border-white/20 animate-in fade-in zoom-in duration-300">
+            {/* Modal Header */}
+            <div className="p-8 md:p-10 border-b border-slate-100 flex items-start justify-between bg-slate-50/30">
+              <div className="flex gap-6 items-center">
+                <div className="w-16 h-16 bg-white rounded-3xl shadow-xl flex items-center justify-center border border-slate-50">
+                   <Ticket className="w-8 h-8 text-indigo-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="text-[11px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-widest">
+                      Ticket #{detailModal.ticket.id}
+                    </span>
+                    <span className={`text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-transparent ${getStatusStyle(detailModal.ticket.status)}`}>
+                      {detailModal.ticket.status.replace("_", " ")}
+                    </span>
+                  </div>
+                  <h2 className="text-3xl font-black text-slate-800 tracking-tight">{detailModal.ticket.title}</h2>
+                </div>
+              </div>
+              <button
+                onClick={() => setDetailModal({ open: false, ticket: null, ackLoading: false })}
+                className="p-3 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-8 md:p-10 space-y-8 max-h-[65vh] overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-2 space-y-8">
+                  <section>
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Original Description</h3>
+                    <div className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-6 rounded-[2rem] font-medium whitespace-pre-wrap">
+                      {detailModal.ticket.description}
+                    </div>
+                  </section>
+
+                  {/* Resolution & Internal Notes Section */}
+                  {(detailModal.ticket.resolutionExplanation || detailModal.ticket.internalNotes) && (
+                    <div className="grid grid-cols-1 gap-6">
+                      {detailModal.ticket.resolutionExplanation && (
+                        <div className="p-8 rounded-[2.5rem] bg-emerald-50 border border-emerald-100 shadow-sm">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-emerald-500 rounded-xl">
+                              <CheckCircle2 className="w-5 h-5 text-white" />
+                            </div>
+                            <h3 className="text-sm font-black text-emerald-800 uppercase tracking-widest">Resolution Summary</h3>
+                          </div>
+                          <p className="text-sm text-emerald-900/80 leading-relaxed font-medium whitespace-pre-wrap">
+                            {detailModal.ticket.resolutionExplanation}
+                          </p>
+                        </div>
+                      )}
+
+                      {detailModal.ticket.internalNotes && (
+                        <div className="p-8 rounded-[2.5rem] bg-indigo-50 border border-indigo-100 shadow-sm">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-indigo-500 rounded-xl">
+                              <ShieldAlert className="w-5 h-5 text-white" />
+                            </div>
+                            <h3 className="text-sm font-black text-indigo-800 uppercase tracking-widest">Technician Notes</h3>
+                          </div>
+                          <p className="text-sm text-indigo-900/80 leading-relaxed font-medium whitespace-pre-wrap">
+                            {detailModal.ticket.internalNotes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-8">
+                  <section>
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Ticket Metadata</h3>
+                    <div className="space-y-4">
+                      {[
+                        { icon: Calendar, label: 'Created', value: formatDate(detailModal.ticket.createdAt) },
+                        { icon: Layers, label: 'Category', value: detailModal.ticket.category },
+                        { icon: Info, label: 'Priority', value: detailModal.ticket.priority },
+                        { icon: Search, label: 'Technician', value: detailModal.ticket.assigneeName || 'Unassigned' }
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                          <item.icon className="w-4 h-4 text-slate-400" />
+                          <div>
+                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{item.label}</p>
+                            <p className="text-xs font-bold text-slate-700 mt-0.5">{item.value}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section>
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Evidence Gallery</h3>
+                    {detailModal.ticket.images && detailModal.ticket.images.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {detailModal.ticket.images.map((img, idx) => (
+                          <a key={idx} href={normalizeImageUrl(img)} target="_blank" rel="noreferrer" className="group relative block aspect-square rounded-2xl overflow-hidden shadow-sm border border-slate-100">
+                            <img src={normalizeImageUrl(img)} alt="attached" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <ImageIcon className="text-white w-6 h-6" />
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-10 text-center bg-slate-50 rounded-[2rem] border border-slate-100 border-dashed">
+                        <ImageIcon className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No Images</p>
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-8 md:p-10 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-50/30">
+               <div className="flex items-center gap-4">
+                  <button 
+                     onClick={() => { setCommentTicketId(detailModal.ticket.id); setCommentOpen(true); }}
+                     className="flex items-center gap-2 text-indigo-600 font-black text-xs uppercase tracking-widest hover:translate-x-2 transition-transform"
+                  >
+                     <MessageSquare className="w-4 h-4" /> View Full Conversation <ArrowRight className="w-4 h-4" />
+                  </button>
+               </div>
+
+               <div className="flex gap-3 w-full md:w-auto">
+                <button
+                  onClick={() => setDetailModal({ open: false, ticket: null, ackLoading: false })}
+                  className="flex-1 md:flex-none px-8 py-4 rounded-[2rem] border-2 border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all"
+                >
+                  Dismiss
+                </button>
+
+                {detailModal.ticket.status !== "CLOSED" && (
+                  <button
+                    onClick={closeTicketByUser}
+                    disabled={detailModal.ackLoading}
+                    className="flex-1 md:flex-none px-8 py-4 rounded-[2rem] bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-rose-200 transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {detailModal.ackLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <History className="w-4 h-4" />
+                    )}
+                    Close Request
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <TicketComments
         ticketId={commentTicketId}
