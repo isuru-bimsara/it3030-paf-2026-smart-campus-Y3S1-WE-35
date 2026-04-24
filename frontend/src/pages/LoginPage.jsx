@@ -340,6 +340,7 @@ export default function LoginPage() {
         ADMIN: pendingRedirect.startsWith("/admin/"),
         USER: pendingRedirect.startsWith("/user/"),
         TECHNICIAN: pendingRedirect.startsWith("/tech/"),
+        OPERATION_MANAGER: pendingRedirect.startsWith("/operation-manager/"),
       };
 
       sessionStorage.removeItem("postLoginRedirect");
@@ -356,6 +357,8 @@ export default function LoginPage() {
         return "/user/dashboard";
       case "TECHNICIAN":
         return "/tech/dashboard";
+      case "OPERATION_MANAGER":
+        return "/operation-manager/dashboard";
       default:
         return "/";
     }

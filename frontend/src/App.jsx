@@ -10,6 +10,7 @@ import {
 import AdminLayout from "./layouts/AdminLayout";
 import UserLayout from "./layouts/UserLayout";
 import TechLayout from "./layouts/TechLayout";
+import OpsLayout from "./layouts/OpsLayout";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -31,6 +32,10 @@ import BookResource from "./pages/user/BookResource";
 import TechDashboard from "./pages/tech/TechDashboard";
 import TechTickets from "./pages/tech/TechTickets";
 import TechNotifications from "./pages/tech/TechNotifications";
+import OpsDashboard from "./pages/ops/OpsDashboard";
+import OpsResources from "./pages/ops/OpsResources";
+import OpsBookings from "./pages/ops/OpsBookings";
+import OpsNotifications from "./pages/ops/OpsNotifications";
 
 // Auth Pages
 import LoginPage from "./pages/LoginPage";
@@ -105,6 +110,23 @@ export default function App() {
           <Route path="dashboard" element={<TechDashboard />} />
           <Route path="tickets" element={<TechTickets />} />
           <Route path="notifications" element={<TechNotifications />} />
+          <Route path="profile" element={<UpdateProfile />} />
+          <Route path="*" element={<Navigate to="dashboard" replace />} />
+        </Route>
+
+        {/* Operation Manager Routes */}
+        <Route
+          path="/operation-manager/*"
+          element={
+            <ProtectedRoute requiredRole="OPERATION_MANAGER">
+              <OpsLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="dashboard" element={<OpsDashboard />} />
+          <Route path="resources" element={<OpsResources />} />
+          <Route path="bookings" element={<OpsBookings />} />
+          <Route path="notifications" element={<OpsNotifications />} />
           <Route path="profile" element={<UpdateProfile />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Route>

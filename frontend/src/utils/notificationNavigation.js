@@ -53,6 +53,7 @@ export function getBaseByRole(role) {
   const r = String(role || "").toUpperCase();
   if (r === "ADMIN") return "/admin";
   if (r === "TECHNICIAN") return "/tech";
+  if (r === "OPERATION_MANAGER") return "/operation-manager";
   return "/user";
 }
 

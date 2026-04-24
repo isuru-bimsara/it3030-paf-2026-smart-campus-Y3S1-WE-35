@@ -97,9 +97,11 @@ export default function AuthCallback() {
             case "user":
               navigate("/user/dashboard");
               break;
-
             case "technician":
               navigate("/tech/dashboard");
+              break;
+            case "operation_manager":
+              navigate("/operation-manager/dashboard");
               break;
             default:
               navigate("/login");
