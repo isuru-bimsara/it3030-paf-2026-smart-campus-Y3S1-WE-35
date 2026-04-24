@@ -127,13 +127,7 @@ public class NotificationService {
             msg += ". " + optionalMessage;
         }
 
-        NotificationType type = switch (to) {
-            case IN_PROGRESS -> NotificationType.TICKET_IN_PROGRESS;
-            case RESOLVED -> NotificationType.TICKET_RESOLVED;
-            case CLOSED -> NotificationType.TICKET_CLOSED;
-            case REJECTED -> NotificationType.TICKET_REJECTED;
-            default -> NotificationType.TICKET_STATUS_CHANGED;
-        };
+        NotificationType type = NotificationType.TICKET_STATUS_CHANGED;
 
         // notify reporter always
         createNotification(ticket.getReporter(), type, msg, ticket.getId());
@@ -148,7 +142,7 @@ public class NotificationService {
     public void notifyResolutionAcknowledged(Ticket ticket) {
         createNotification(
                 ticket.getReporter(),
-                NotificationType.TICKET_RESOLUTION_ACKNOWLEDGED,
+                NotificationType.TICKET_STATUS_CHANGED,
                 "You acknowledged ticket '" + ticket.getTitle() + "'. Ticket is now CLOSED.",
                 ticket.getId()
         );
@@ -156,7 +150,7 @@ public class NotificationService {
         if (ticket.getAssignee() != null) {
             createNotification(
                     ticket.getAssignee(),
-                    NotificationType.TICKET_CLOSED,
+                    NotificationType.TICKET_STATUS_CHANGED,
                     "User acknowledged resolution for '" + ticket.getTitle() + "'. Ticket auto-closed.",
                     ticket.getId()
             );
@@ -262,13 +256,13 @@ public class NotificationService {
         return toResponse(notificationRepository.save(n));
     }
 
-    // @Transactional
-    // public void markAllAsRead(String email) {
-    //     User user = findUserByEmail(email);
-    //     List<Notification> unread = notificationRepository.findByUserIdAndReadFalse(user.getId());
-    //     unread.forEach(n -> n.setRead(true));
-    //     notificationRepository.saveAll(unread);
-    // }
+    @Transactional
+    public void markAllAsRead(String email) {
+        User user = findUserByEmail(email);
+        List<Notification> unread = notificationRepository.findByUserIdAndReadFalse(user.getId());
+        unread.forEach(n -> n.setRead(true));
+        notificationRepository.saveAll(unread);
+    }
 
     // @Transactional
     // public void deleteNotification(Long id, String email) {
