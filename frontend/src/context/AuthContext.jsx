@@ -475,6 +475,7 @@ export function AuthProvider({ children }) {
         loginWithGoogle,
         register,
         logout,
+        setUser: updateUser,
         updateUser, // ✅ exposed
       }}
     >

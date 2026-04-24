@@ -464,9 +464,9 @@ export default function TechTickets() {
 
   const [tickets, setTickets] = useState([]);
   const [fetching, setFetching] = useState(true);
+  const [fetchError, setFetchError] = useState("");
 
-  // default: MY_ACTIVE always
-  const [activeTab, setActiveTab] = useState("MY_ACTIVE");
+  const [activeTab, setActiveTab] = useState("ALL");
 
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentTicketId, setCommentTicketId] = useState(null);
@@ -492,12 +492,14 @@ export default function TechTickets() {
 
   const fetchTickets = async () => {
     setFetching(true);
+    setFetchError("");
     try {
       const res = await ticketsApi.getAll();
       setTickets(res?.data?.data || []);
     } catch (err) {
       console.error(err);
       setTickets([]);
+      setFetchError(err?.response?.data?.message || "Failed to load tickets.");
     } finally {
       setFetching(false);
     }
@@ -524,21 +526,32 @@ export default function TechTickets() {
     openTicketDetails(t);
   }, [ticketIdFromQuery, tickets, myId]);
 
+  const sortNewestFirst = (items) =>
+    [...items].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
   const filteredTickets = useMemo(() => {
     switch (activeTab) {
+      case "ALL":
+        return sortNewestFirst(tickets);
       case "AVAILABLE":
-        return tickets.filter((t) => !t.assigneeId && t.status === "OPEN");
+        return sortNewestFirst(tickets.filter((t) => !t.assigneeId && t.status === "OPEN"));
       case "MY_ACTIVE":
-        return tickets.filter(
-          (t) => Number(t.assigneeId) === myId && t.status === "IN_PROGRESS"
+        return sortNewestFirst(
+          tickets.filter(
+            (t) => Number(t.assigneeId) === myId && t.status === "IN_PROGRESS"
+          )
         );
       case "RESOLVED":
-        return tickets.filter(
-          (t) => Number(t.assigneeId) === myId && t.status === "RESOLVED"
+        return sortNewestFirst(
+          tickets.filter(
+            (t) => Number(t.assigneeId) === myId && t.status === "RESOLVED"
+          )
         );
       case "CLOSED":
-        return tickets.filter(
-          (t) => Number(t.assigneeId) === myId && t.status === "CLOSED"
+        return sortNewestFirst(
+          tickets.filter(
+            (t) => Number(t.assigneeId) === myId && t.status === "CLOSED"
+          )
         );
       default:
         return [];
@@ -556,7 +569,7 @@ export default function TechTickets() {
     const closed = tickets.filter(
       (t) => Number(t.assigneeId) === myId && t.status === "CLOSED"
     ).length;
-    return { available, active, resolved, closed };
+    return { all: tickets.length, available, active, resolved, closed };
   }, [tickets, myId]);
 
   const openTicketDetails = (ticket) => {
@@ -639,7 +652,7 @@ export default function TechTickets() {
       case "HIGH":
         return "bg-orange-500 text-white";
       case "MEDIUM":
-        return "bg-blue-600 text-white";
+        return "bg-violet-600 text-white";
       default:
         return "bg-slate-500 text-white";
     }
@@ -648,15 +661,15 @@ export default function TechTickets() {
   const getStatusChip = (s) => {
     switch (s) {
       case "OPEN":
-        return "bg-rose-50 text-rose-700 border-rose-200";
+        return "bg-violet-50 text-violet-700 border-violet-200";
       case "IN_PROGRESS":
-        return "bg-blue-50 text-blue-700 border-blue-200";
+        return "bg-purple-50 text-purple-700 border-purple-200";
       case "RESOLVED":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
+        return "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200";
       case "CLOSED":
-        return "bg-slate-50 text-slate-700 border-slate-200";
+        return "bg-violet-50/80 text-violet-500 border-violet-100";
       case "REJECTED":
-        return "bg-orange-50 text-orange-700 border-orange-200";
+        return "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200";
       default:
         return "bg-slate-50 text-slate-700 border-slate-200";
     }
@@ -690,13 +703,13 @@ export default function TechTickets() {
       {/* Top Header */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-5">
         <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-emerald-600 rounded-2xl shadow-lg shadow-emerald-200">
+          <div className="p-3.5 bg-[linear-gradient(135deg,#6D28D9_0%,#8B5CF6_100%)] rounded-2xl shadow-lg shadow-violet-200">
             <ClipboardList className="text-white w-7 h-7" />
           </div>
           <div>
             <h1 className="text-3xl font-black text-slate-900">Technician Workbench</h1>
             <p className="text-slate-500 font-medium mt-0.5">
-              Default view: <span className="font-bold">My Active Tickets</span>
+              View all tickets first, then jump into your working queues.
             </p>
           </div>
         </div>
@@ -712,6 +725,7 @@ export default function TechTickets() {
 
           <div className="flex p-1.5 bg-slate-100 rounded-2xl w-full xl:w-auto flex-wrap">
             {[
+              { id: "ALL", label: `All (${counts.all})`, icon: Eye },
               { id: "MY_ACTIVE", label: `My Active (${counts.active})`, icon: UserCheck },
               { id: "AVAILABLE", label: `Available (${counts.available})`, icon: ClipboardList },
               { id: "RESOLVED", label: `Resolved (${counts.resolved})`, icon: CheckCircle2 },
@@ -722,8 +736,8 @@ export default function TechTickets() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
                   activeTab === tab.id
-                    ? "bg-white text-emerald-600 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "bg-white text-violet-600 shadow-sm"
+                    : "text-slate-500 hover:text-violet-700"
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
@@ -750,9 +764,16 @@ export default function TechTickets() {
           <div className="max-h-[70vh] overflow-y-auto">
             {fetching ? (
               <div className="py-16 text-center">
-                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-3" />
+                <Loader2 className="w-8 h-8 text-violet-500 animate-spin mx-auto mb-3" />
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                   Loading tickets...
+                </p>
+              </div>
+            ) : fetchError ? (
+              <div className="py-16 px-6 text-center">
+                <p className="text-sm font-bold text-rose-600">{fetchError}</p>
+                <p className="text-xs text-slate-400 mt-2">
+                  Refresh after the backend data issue is fixed.
                 </p>
               </div>
             ) : filteredTickets.length === 0 ? (
@@ -768,7 +789,7 @@ export default function TechTickets() {
                       key={t.id}
                       onClick={() => openTicketDetails(t)}
                       className={`w-full text-left px-5 py-4 transition ${
-                        selected ? "bg-emerald-50/60" : "hover:bg-slate-50"
+                        selected ? "bg-violet-50/60" : "hover:bg-slate-50"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -882,11 +903,11 @@ export default function TechTickets() {
 
               {/* Resolution note if exists */}
               {selectedTicket.resolutionExplanation && (
-                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
-                  <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
+                <div className="mt-6 p-4 bg-fuchsia-50 border border-fuchsia-100 rounded-xl">
+                  <p className="text-[10px] font-black text-fuchsia-700 uppercase tracking-widest">
                     Resolution Note
                   </p>
-                  <p className="text-sm text-emerald-800 mt-2 whitespace-pre-wrap">
+                  <p className="text-sm text-fuchsia-800 mt-2 whitespace-pre-wrap">
                     {selectedTicket.resolutionExplanation}
                   </p>
                 </div>
@@ -941,7 +962,7 @@ export default function TechTickets() {
                 {canTake && (
                   <button
                     onClick={() => handleTake(selectedTicket.id)}
-                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-sm font-black"
+                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-[linear-gradient(135deg,#6D28D9_0%,#8B5CF6_100%)] text-white hover:opacity-95 text-sm font-black"
                   >
                     Take Ticket
                     <ChevronRight className="w-4 h-4" />
@@ -961,10 +982,10 @@ export default function TechTickets() {
 
               {/* Resolve box INSIDE detail panel */}
               {isMyActive && (
-                <div className="mt-6 p-5 rounded-2xl border border-emerald-200 bg-emerald-50/50">
+                <div className="mt-6 p-5 rounded-2xl border border-violet-200 bg-violet-50/50">
                   <div className="flex items-center gap-2 mb-3">
-                    <AlertTriangle className="w-4 h-4 text-emerald-700" />
-                    <p className="text-sm font-black text-emerald-800 uppercase tracking-wide">
+                    <AlertTriangle className="w-4 h-4 text-violet-700" />
+                    <p className="text-sm font-black text-violet-800 uppercase tracking-wide">
                       Move to RESOLVED
                     </p>
                   </div>
@@ -977,7 +998,7 @@ export default function TechTickets() {
                       <textarea
                         required
                         rows={4}
-                        className="mt-1.5 w-full px-4 py-3 bg-white border border-emerald-200 rounded-xl text-sm"
+                        className="mt-1.5 w-full px-4 py-3 bg-white border border-violet-200 rounded-xl text-sm"
                         placeholder="Describe exactly what you fixed..."
                         value={resolveForm.explanation}
                         onChange={(e) =>
@@ -992,7 +1013,7 @@ export default function TechTickets() {
                       </label>
                       <textarea
                         rows={2}
-                        className="mt-1.5 w-full px-4 py-3 bg-white border border-emerald-200 rounded-xl text-sm"
+                        className="mt-1.5 w-full px-4 py-3 bg-white border border-violet-200 rounded-xl text-sm"
                         placeholder="Optional technical notes..."
                         value={resolveForm.internalNotes}
                         onChange={(e) =>
@@ -1004,7 +1025,7 @@ export default function TechTickets() {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-sm font-black disabled:opacity-60"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[linear-gradient(135deg,#6D28D9_0%,#8B5CF6_100%)] text-white hover:opacity-95 text-sm font-black disabled:opacity-60"
                     >
                       {submitting ? (
                         <>
