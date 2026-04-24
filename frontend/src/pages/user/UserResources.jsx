@@ -11,7 +11,7 @@ export default function UserResources() {
   useEffect(() => {
     resourcesApi.getAvailable()
       .then(res => {
-        setResources(res.data);
+        setResources(Array.isArray(res.data) ? res.data : (res.data?.data || []));
       })
       .catch(err => console.error(err));
   }, []);

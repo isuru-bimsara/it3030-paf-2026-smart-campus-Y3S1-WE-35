@@ -703,7 +703,7 @@
 // }
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../api/axios";
 import { 
   Plus, 
   Pencil, 
@@ -720,6 +720,9 @@ const BASE_URL = "http://localhost:8083";
 
 export default function AdminResources() {
   const [resources, setResources] = useState([]);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     id: null,
     name: "",
@@ -735,10 +738,12 @@ export default function AdminResources() {
 
   const fetchResources = async () => {
     try {
-      const res = await axios.get("/api/resources");
-      setResources(res.data);
+      setError("");
+      const res = await api.get("/resources");
+      setResources(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (err) {
       console.error(err);
+      setError(err.response?.data?.message || "Failed to load resources.");
     }
   };
 
@@ -750,13 +755,14 @@ export default function AdminResources() {
   const resetForm = () => {
     setForm({ id: null, name: "", type: "", capacity: "", status: "AVAILABLE", description: "", location: "", imageUrl: "" });
     setFile(null);
+    setSuccess("");
   };
 
   const uploadImage = async () => {
     if (!file) return form.imageUrl || "";
     const formData = new FormData();
     formData.append("file", file);
-    const res = await axios.post("/api/resources/upload", formData, {
+    const res = await api.post("/resources/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
     return res.data;
@@ -764,6 +770,9 @@ export default function AdminResources() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
+    setError("");
+    setSuccess("");
     try {
       const imageUrl = await uploadImage();
       const isEquipment = form.type === "EQUIPMENT";
@@ -775,14 +784,17 @@ export default function AdminResources() {
       };
 
       if (form.id) {
-        await axios.put(`/api/resources/${form.id}`, payload);
+        await api.put(`/resources/${form.id}`, payload);
       } else {
-        await axios.post(`/api/resources`, payload);
+        await api.post(`/resources`, payload);
       }
+      setSuccess(form.id ? "Resource updated successfully." : "Resource created successfully.");
       resetForm();
-      fetchResources();
+      await fetchResources();
     } catch (err) {
-      alert("Error: " + (err.response?.data?.message || err.message));
+      setError(err.response?.data?.message || err.message || "Failed to save resource.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -811,6 +823,18 @@ export default function AdminResources() {
             Total: {resources.length}
           </div>
         </header>
+
+        {error && (
+          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+            {success}
+          </div>
+        )}
 
         {/* 1. FORM CARD */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-10">
@@ -881,8 +905,8 @@ export default function AdminResources() {
             </div>
 
             <div className="mt-6 flex justify-end">
-              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-md shadow-blue-200 transition-all flex items-center gap-2">
-                {form.id ? <><Pencil className="w-4 h-4" /> Update Resource</> : <><Plus className="w-4 h-4" /> Add Resource</>}
+              <button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2.5 px-8 rounded-xl shadow-md shadow-blue-200 transition-all flex items-center gap-2">
+                {saving ? "Saving..." : form.id ? <><Pencil className="w-4 h-4" /> Update Resource</> : <><Plus className="w-4 h-4" /> Add Resource</>}
               </button>
             </div>
           </form>
@@ -921,11 +945,11 @@ export default function AdminResources() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <div className="space-y-1.5">
+                        <div className="space-y-1.5">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Users className="w-4 h-4 text-gray-400" /> {r.capacity} {r.type === 'EQUIPMENT' ? 'Units' : 'Seats'}
                         </div>
-                        {!isEquipment && r.location && (
+                        {r.type !== "EQUIPMENT" && r.location && (
                           <div className="flex items-center gap-2 text-xs text-gray-400">
                             <MapPin className="w-3.5 h-3.5" /> {r.location}
                           </div>
@@ -939,10 +963,30 @@ export default function AdminResources() {
                     </td>
                     <td className="p-4">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => setForm(r)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        <button onClick={() => setForm({
+                          id: r.id,
+                          name: r.name || "",
+                          type: r.type || "",
+                          capacity: r.capacity ?? "",
+                          status: r.status || "AVAILABLE",
+                          description: r.description || "",
+                          location: r.location || "",
+                          imageUrl: r.imageUrl || "",
+                        })} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                           <Pencil className="w-5 h-5" />
                         </button>
-                        <button onClick={() => { if(window.confirm('Delete?')) axios.delete(`/api/resources/${r.id}`).then(fetchResources) }} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                        <button onClick={async () => {
+                          if (!window.confirm('Delete?')) return;
+                          setError("");
+                          setSuccess("");
+                          try {
+                            await api.delete(`/resources/${r.id}`);
+                            setSuccess("Resource deleted successfully.");
+                            await fetchResources();
+                          } catch (err) {
+                            setError(err.response?.data?.message || "Failed to delete resource.");
+                          }
+                        }} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </div>

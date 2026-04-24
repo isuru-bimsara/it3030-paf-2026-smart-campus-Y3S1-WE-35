@@ -58,7 +58,7 @@ export default function OpsResources() {
     try {
       setLoading(true);
       const res = await api.get("/resources");
-      setResources(res.data);
+      setResources(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch {
       setError("Failed to load resources.");
     } finally {

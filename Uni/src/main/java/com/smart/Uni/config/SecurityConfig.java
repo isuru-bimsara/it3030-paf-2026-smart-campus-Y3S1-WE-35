@@ -70,11 +70,11 @@ public class SecurityConfig {
 
                         // Resource READ is open to all authenticated users (users need to browse resources)
                         .requestMatchers(HttpMethod.GET, "/api/resources/**").authenticated()
-                        // Resource WRITE/DELETE requires OPERATION_MANAGER (defence-in-depth; @PreAuthorize also guards)
-                        .requestMatchers(HttpMethod.POST, "/api/resources/**").hasRole("OPERATION_MANAGER")
-                        .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasRole("OPERATION_MANAGER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasRole("OPERATION_MANAGER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/resources/**").hasRole("OPERATION_MANAGER")
+                        // Resource WRITE/DELETE requires operations or admin access
+                        .requestMatchers(HttpMethod.POST, "/api/resources/**").hasAnyRole("OPERATION_MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasAnyRole("OPERATION_MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasAnyRole("OPERATION_MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/resources/**").hasAnyRole("OPERATION_MANAGER", "ADMIN")
 
                         // Booking management (approve/reject/all) — guarded via @PreAuthorize on methods
                         .requestMatchers("/api/bookings/**").authenticated()

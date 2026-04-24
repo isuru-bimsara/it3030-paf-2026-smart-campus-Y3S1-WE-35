@@ -311,7 +311,7 @@ import {
   X,
 } from "lucide-react";
 
-const ROLES = ["USER", "TECHNICIAN", "ADMIN"];
+const ROLES = ["USER", "TECHNICIAN", "OPERATION_MANAGER", "ADMIN"];
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
