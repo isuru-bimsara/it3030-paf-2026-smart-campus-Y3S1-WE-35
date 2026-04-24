@@ -264,31 +264,21 @@ public class NotificationService {
         notificationRepository.saveAll(unread);
     }
 
-    // @Transactional
-    // public void deleteNotification(Long id, String email) {
-    //     User user = findUserByEmail(email);
-    //     Notification n = notificationRepository.findByIdAndUserId(id, user.getId())
-    //             .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
-    //     notificationRepository.delete(n);
-    // }
+    @Transactional
+    public void deleteNotification(Long id, String email) {
+        User user = findUserByEmail(email);
+        int deleted = notificationRepository.deleteByIdAndUserId(id, user.getId());
+        if (deleted == 0) {
+            throw new ResourceNotFoundException("Notification not found");
+        }
+    }
 
     @Transactional
-public void deleteNotification(Long id, String email) {
-    User user = findUserByEmail(email);
-    int deleted = notificationRepository.deleteByIdAndUserId(id, user.getId());
-    if (deleted == 0) {
-        throw new ResourceNotFoundException("Notification not found");
+    public void deleteAllNotifications(String email) {
+        User user = findUserByEmail(email);
+        int deleted = notificationRepository.deleteByUserId(user.getId());
+        System.out.println("Deleted notifications: " + deleted + " for userId=" + user.getId());
     }
-}
-
-@Transactional
-public void deleteAllNotifications(String email) {
-    User user = findUserByEmail(email);
-    int deleted = notificationRepository.deleteByUserId(user.getId());
-    System.out.println("Deleted notifications: " + deleted + " for userId=" + user.getId());
-}
-
-
 
     /* =========================================================
        HELPERS
