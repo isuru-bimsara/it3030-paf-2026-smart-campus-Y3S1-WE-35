@@ -239,6 +239,7 @@ public class TicketService {
                 .reporter(reporter)
                 .title(request.getTitle())
                 .description(request.getDescription())
+                .contactDetails(request.getContactDetails().trim())
                 .category(request.getCategory() != null ? request.getCategory() : TicketCategory.OTHER)
                 .priority(request.getPriority() != null ? request.getPriority() : TicketPriority.MEDIUM)
                 .images(imagePaths)
@@ -293,7 +294,7 @@ public class TicketService {
         Ticket ticket = findTicketById(id);
 
         if (ticket.getStatus() == TicketStatus.CLOSED) {
-            throw new RuntimeException("Closed ticket cannot be changed");
+            throw new IllegalArgumentException("Closed ticket cannot be changed");
         }
 
         validateStatusTransition(ticket.getStatus(), newStatus);
@@ -314,10 +315,10 @@ public class TicketService {
         User user = findUserByEmail(email);
 
         if (!ticket.getReporter().getId().equals(user.getId())) {
-            throw new RuntimeException("You can only delete your own tickets.");
+            throw new IllegalArgumentException("You can only delete your own tickets.");
         }
         if (!(ticket.getStatus() == TicketStatus.OPEN || ticket.getStatus() == TicketStatus.IN_PROGRESS)) {
-            throw new RuntimeException("Only open/in-progress tickets can be deleted.");
+            throw new IllegalArgumentException("Only open/in-progress tickets can be deleted.");
         }
         ticketRepository.deleteById(id);
     }
@@ -363,6 +364,7 @@ public class TicketService {
                 .assigneeName(t.getAssignee() != null ? t.getAssignee().getName() : null)
                 .title(t.getTitle())
                 .description(t.getDescription())
+                .contactDetails(t.getContactDetails())
                 .category(t.getCategory())
                 .priority(t.getPriority())
                 .status(t.getStatus())

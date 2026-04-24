@@ -35,6 +35,9 @@ public class Ticket {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
 
+    @Column(name = "contact_details", nullable = false)
+    private String contactDetails;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private TicketCategory category = TicketCategory.OTHER;

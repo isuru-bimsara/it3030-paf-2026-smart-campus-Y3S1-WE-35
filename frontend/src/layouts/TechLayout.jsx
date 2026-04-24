@@ -3,7 +3,7 @@
 // frontend/src/layouts/TechLayout.jsx
 
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 
@@ -18,25 +18,24 @@ import {
 
 export default function TechLayout() {
   const navigate = useNavigate();
-  const { user, setUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
 
   // ✅ GET LOGGED-IN USER
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await api.get("/auth/me");
+        updateUser(res.data.data);
+      } catch (err) {
+        console.log(err);
+      }
+    };
     fetchUser();
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const res = await api.get("/auth/me");
-      setUser(res.data.data);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+  }, [updateUser]);
 
   // ✅ LOGOUT FUNCTION
   const handleLogout = () => {
-    localStorage.removeItem("token"); // remove JWT
+    logout();
     navigate("/login"); // redirect
   };
 

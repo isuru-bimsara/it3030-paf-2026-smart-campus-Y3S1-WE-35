@@ -1,7 +1,7 @@
 
 
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import {
@@ -17,24 +17,24 @@ import {
 
 export default function UserLayout() {
   const navigate = useNavigate();
- const { user, logout } = useAuth();
+  const { user, updateUser, logout } = useAuth();
 
   // Fetch logged-in user once
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const res = await api.get("/auth/me");
-        setUser(res.data.data);
+        updateUser(res.data.data);
       } catch (err) {
         console.error(err);
       }
     };
     fetchUser();
-  }, []);
+  }, [updateUser]);
 
   // Logout
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    logout();
     navigate("/login");
   };
 

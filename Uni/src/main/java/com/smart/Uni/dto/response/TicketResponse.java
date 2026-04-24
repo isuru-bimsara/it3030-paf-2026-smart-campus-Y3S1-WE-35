@@ -18,6 +18,7 @@ public class TicketResponse {
     private String assigneeName;
     private String title;
     private String description;
+    private String contactDetails;
     private TicketCategory category;
     private TicketPriority priority;
     private TicketStatus status;
