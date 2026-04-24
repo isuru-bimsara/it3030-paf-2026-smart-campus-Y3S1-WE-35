@@ -24,6 +24,12 @@ public class NotificationService {
     /* ---------- PUBLIC NOTIFIERS ---------- */
 
     public void notifyBookingPending(Booking booking) {
+        createNotification(
+                booking.getUser(),
+                NotificationType.BOOKING_PENDING,
+                "Your booking request for " + booking.getResource().getName() + " is pending approval.",
+                booking.getId()
+        );
         notifyAdminsAndOps(
                 "New booking pending approval for resource: " + booking.getResource().getName(),
                 NotificationType.BOOKING_PENDING,
@@ -62,6 +68,12 @@ public class NotificationService {
 
     /* NEW: ticket created -> technicians */
     public void notifyTicketCreated(Ticket ticket) {
+        createNotification(
+                ticket.getReporter(),
+                NotificationType.TICKET_CREATED,
+                "Your ticket '" + ticket.getTitle() + "' was submitted successfully.",
+                ticket.getId()
+        );
         notifyByRole(UserRole.TECHNICIAN,
                 "New ticket: " + ticket.getTitle(),
                 NotificationType.TICKET_CREATED,

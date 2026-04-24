@@ -143,9 +143,13 @@ export default function TechLayout() {
             </span>
           </h1>
 
-          <button className="relative p-2 text-slate-400 hover:text-indigo-600">
+          <NavLink
+            to="/tech/notifications"
+            aria-label="Open notifications"
+            className="relative p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+          >
             <Bell className="w-6 h-6" />
-          </button>
+          </NavLink>
         </header>
 
         {/* CONTENT */}

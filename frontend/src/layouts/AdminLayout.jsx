@@ -310,9 +310,13 @@ export default function AdminLayout() {
             </span>
           </h1>
 
-          <button className="relative p-2 text-slate-400 hover:text-indigo-600">
+          <NavLink
+            to="/admin/notifications"
+            aria-label="Open notifications"
+            className="relative p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+          >
             <Bell className="w-6 h-6" />
-          </button>
+          </NavLink>
         </header>
 
         <section className="flex-1 overflow-y-auto p-8">

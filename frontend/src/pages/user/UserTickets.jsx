@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
+  ArrowRight,
   CalendarDays,
+  CheckCircle2,
   Clock,
   Image as ImageIcon,
   Layers,
@@ -105,6 +107,46 @@ export default function UserTickets() {
     });
   }, [tickets]);
 
+  const ticketStats = useMemo(() => {
+    const openCount = tickets.filter((ticket) => ticket.status === "OPEN").length;
+    const inProgressCount = tickets.filter(
+      (ticket) => ticket.status === "IN_PROGRESS",
+    ).length;
+    const resolvedCount = tickets.filter((ticket) =>
+      ["RESOLVED", "CLOSED"].includes(ticket.status),
+    ).length;
+    const criticalCount = tickets.filter(
+      (ticket) => ticket.priority === "CRITICAL",
+    ).length;
+
+    return [
+      {
+        label: "Open Requests",
+        value: openCount,
+        detail: "Active issues waiting for action",
+        icon: AlertCircle,
+      },
+      {
+        label: "In Progress",
+        value: inProgressCount,
+        detail: "Currently being reviewed by the team",
+        icon: Clock,
+      },
+      {
+        label: "Resolved",
+        value: resolvedCount,
+        detail: "Completed or closed support requests",
+        icon: CheckCircle2,
+      },
+      {
+        label: "Critical",
+        value: criticalCount,
+        detail: "High-priority incidents flagged urgently",
+        icon: Layers,
+      },
+    ];
+  }, [tickets]);
+
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
@@ -167,6 +209,19 @@ export default function UserTickets() {
     }
   };
 
+  const getPriorityStyle = (priority) => {
+    switch (priority) {
+      case "CRITICAL":
+        return "bg-rose-50 text-rose-700 border-rose-200";
+      case "HIGH":
+        return "bg-orange-50 text-orange-700 border-orange-200";
+      case "MEDIUM":
+        return "bg-amber-50 text-amber-700 border-amber-200";
+      default:
+        return "bg-sky-50 text-sky-700 border-sky-200";
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return "Just now";
 
@@ -179,37 +234,133 @@ export default function UserTickets() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 pb-20 p-6 md:p-0">
-      <div className="flex items-center gap-4">
-        <div className="p-3.5 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200 flex items-center justify-center">
-          <Ticket className="text-white w-7 h-7" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-            Support Center
-          </h1>
-          <p className="text-slate-500 font-medium mt-0.5">
-            Report issues or request maintenance for resources.
-          </p>
-        </div>
-      </div>
+    <div className="max-w-7xl mx-auto space-y-8 pb-20 p-6 md:p-0">
+      <section className="relative overflow-hidden rounded-[36px] border border-violet-100 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_48%,#f5f3ff_100%)] px-6 py-8 shadow-[0_24px_70px_rgba(109,40,217,0.10)] md:px-8 xl:px-10">
+        <div className="pointer-events-none absolute -left-20 top-0 h-60 w-60 rounded-full bg-violet-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-purple-300/20 blur-3xl" />
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-        <div className="xl:col-span-4 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden sticky top-6">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <PlusCircle className="w-5 h-5 text-indigo-600" />
-              New Support Request
-            </h2>
+        <div className="relative z-10 grid gap-8 xl:grid-cols-[1.1fr_0.9fr] xl:items-end">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white/80 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-violet-700 shadow-sm backdrop-blur">
+              <Ticket className="h-3.5 w-3.5" />
+              Premium Support Center
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-violet-600">
+                Fast help for every campus issue
+              </p>
+              <h1 className="max-w-3xl text-4xl font-black tracking-[-0.05em] text-slate-950 md:text-5xl">
+                Submit smarter requests,
+                <span className="block bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_52%,#8B5CF6_100%)] bg-clip-text text-transparent">
+                  track every update beautifully
+                </span>
+              </h1>
+              <p className="max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
+                Send maintenance or support requests with clear details,
+                attachments, and contact info, then follow each status change
+                from one polished workspace.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {ticketStats.map((stat) => {
+                const Icon = stat.icon;
+                return (
+                  <div
+                    key={stat.label}
+                    className="rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_18px_40px_rgba(109,40,217,0.08)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-[0_24px_50px_rgba(109,40,217,0.14)]"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="rounded-2xl bg-[linear-gradient(135deg,#ede9fe_0%,#f5f3ff_100%)] p-3 text-violet-700">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <span className="rounded-full border border-violet-100 bg-violet-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-600">
+                        Live
+                      </span>
+                    </div>
+                    <p className="mt-5 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+                      {stat.label}
+                    </p>
+                    <p className="mt-2 text-4xl font-black tracking-tight text-slate-950">
+                      {stat.value}
+                    </p>
+                    <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+                      {stat.detail}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div className="rounded-[34px] border border-white/80 bg-white/75 p-5 shadow-[0_26px_70px_rgba(109,40,217,0.12)] backdrop-blur">
+            <div className="rounded-[30px] bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_55%,#8B5CF6_100%)] p-6 text-white shadow-[0_20px_50px_rgba(109,40,217,0.28)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-violet-100">
+                    Support Snapshot
+                  </p>
+                  <h2 className="mt-3 text-2xl font-black tracking-tight">
+                    {sortedTickets.length > 0
+                      ? "Your requests are organized and visible"
+                      : "Start your first support request in seconds"}
+                  </h2>
+                </div>
+                <div className="rounded-2xl bg-white/15 p-3 backdrop-blur">
+                  <Ticket className="h-6 w-6" />
+                </div>
+              </div>
+
+              <div className="mt-8 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-white/15 px-4 py-4 backdrop-blur">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-100">
+                    Contact
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-white/95 break-all">
+                    {form.contactDetails || user?.email || "Not provided"}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white/15 px-4 py-4 backdrop-blur">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-100">
+                    Latest Activity
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-white/95">
+                    {sortedTickets[0]?.createdAt
+                      ? formatDate(sortedTickets[0].createdAt)
+                      : "No requests yet"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-white/90">
+                Everything stays synced with your technician updates
+                <ArrowRight className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-12 xl:items-start">
+        <div className="xl:col-span-4 rounded-[32px] border border-violet-100 bg-white shadow-[0_18px_50px_rgba(109,40,217,0.08)] overflow-hidden sticky top-6">
+          <div className="border-b border-violet-100 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_100%)] px-6 py-6">
+            <h2 className="flex items-center gap-2 text-xl font-black text-slate-900">
+              <PlusCircle className="h-5 w-5 text-violet-600" />
+              New Support Request
+            </h2>
+            <p className="mt-2 text-sm font-medium text-slate-500">
+              Share the issue clearly and our team can move faster.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5 p-6">
             <div className="space-y-1.5">
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">
                 Subject
               </label>
               <input
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all text-sm font-medium"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-700 outline-none transition-all focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-100"
                 required
                 name="title"
                 placeholder="Brief summary of the issue"
@@ -223,11 +374,11 @@ export default function UserTickets() {
                 Details
               </label>
               <textarea
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all resize-none text-sm font-medium leading-relaxed"
+                className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium leading-relaxed text-slate-700 outline-none transition-all focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-100"
                 required
                 name="description"
                 placeholder="Describe the problem in detail..."
-                rows={4}
+                rows={5}
                 value={form.description}
                 onChange={handleChange}
               />
@@ -238,7 +389,7 @@ export default function UserTickets() {
                 Contact Details
               </label>
               <input
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all text-sm font-medium"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-700 outline-none transition-all focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-100"
                 required
                 name="contactDetails"
                 placeholder="Email or phone number for follow-up"
@@ -255,7 +406,7 @@ export default function UserTickets() {
                 <div className="relative">
                   <Layers className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <select
-                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none appearance-none cursor-pointer text-sm font-semibold text-slate-700"
+                    className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all cursor-pointer focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-100"
                     name="category"
                     required
                     value={form.category}
@@ -281,7 +432,7 @@ export default function UserTickets() {
                 <div className="relative">
                   <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <select
-                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none appearance-none cursor-pointer text-sm font-semibold text-slate-700"
+                    className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all cursor-pointer focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-100"
                     name="priority"
                     required
                     value={form.priority}
@@ -303,12 +454,14 @@ export default function UserTickets() {
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">
                 Attachments (Max 3)
               </label>
-              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-indigo-300 transition-all bg-slate-50/50">
+              <label className="flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-[26px] border-2 border-dashed border-violet-200 bg-[linear-gradient(135deg,#faf5ff_0%,#ffffff_100%)] transition-all hover:border-violet-300 hover:bg-violet-50/50">
                 <div className="flex flex-col items-center justify-center pt-2">
-                  <ImageIcon className="w-6 h-6 text-slate-400 mb-1" />
-                  <p className="text-xs font-medium text-slate-500">
+                  <div className="rounded-2xl bg-white p-3 shadow-sm">
+                    <ImageIcon className="h-6 w-6 text-violet-500" />
+                  </div>
+                  <p className="mt-3 text-xs font-medium text-slate-500">
                     {images.length > 0 ? (
-                      <span className="text-indigo-600 font-bold">
+                      <span className="font-bold text-violet-600">
                         {images.length} file(s) ready
                       </span>
                     ) : (
@@ -329,7 +482,7 @@ export default function UserTickets() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md shadow-indigo-200 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:bg-slate-300 disabled:shadow-none"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_55%,#8B5CF6_100%)] py-3.5 font-bold text-white shadow-[0_18px_40px_rgba(109,40,217,0.28)] transition-all hover:-translate-y-0.5 hover:shadow-[0_24px_55px_rgba(109,40,217,0.34)] active:scale-[0.99] disabled:bg-slate-300 disabled:shadow-none"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -342,141 +495,140 @@ export default function UserTickets() {
           </form>
         </div>
 
-        <div className="xl:col-span-8 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden h-fit">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+        <div className="xl:col-span-8 overflow-hidden rounded-[32px] border border-violet-100 bg-white shadow-[0_18px_50px_rgba(109,40,217,0.08)] h-fit">
+          <div className="flex flex-col gap-4 border-b border-violet-100 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_100%)] p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-indigo-600" />
+              <h3 className="flex items-center gap-2 text-xl font-black text-slate-900">
+                <Layers className="h-5 w-5 text-violet-600" />
                 Your Ticket History
               </h3>
-              <p className="text-xs font-medium text-slate-400 mt-1">
-                Sorted by priority and recent activity
+              <p className="mt-2 text-sm font-medium text-slate-500">
+                Premium timeline of your recent requests, priorities, and updates.
               </p>
             </div>
-            <div className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500">
+            <div className="w-fit rounded-full border border-violet-100 bg-violet-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-violet-600">
               {sortedTickets.length} Total
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div>
             {fetching ? (
               <div className="p-20 text-center animate-pulse">
-                <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-violet-50">
+                  <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
                 </div>
-                <p className="text-slate-500 font-bold tracking-widest uppercase text-xs">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
                   Loading History...
                 </p>
               </div>
             ) : sortedTickets.length === 0 ? (
               <div className="p-20 text-center">
-                <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                  <Clock className="w-8 h-8 text-slate-300" />
+                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-violet-100 bg-violet-50">
+                  <Clock className="h-8 w-8 text-violet-300" />
                 </div>
-                <p className="text-slate-600 font-bold text-lg">
+                <p className="text-lg font-bold text-slate-700">
                   No tickets found
                 </p>
-                <p className="text-slate-400 text-sm mt-1">
+                <p className="mt-2 text-sm text-slate-400">
                   Your submitted requests will appear here.
                 </p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/50 border-b border-slate-100">
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
-                      Request Info
-                    </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
-                      Evidence
-                    </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {sortedTickets.map((t) => (
-                    <tr
-                      key={t.id}
-                      className="hover:bg-indigo-50/30 transition-colors group"
-                    >
-                      <td className="px-6 py-5">
-                        <div className="font-bold text-slate-800 mb-1.5 text-sm line-clamp-1">
-                          {t.title}
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className={`w-2 h-2 rounded-full ${
-                                t.priority === "CRITICAL"
-                                  ? "bg-rose-500 animate-pulse"
-                                  : t.priority === "HIGH"
-                                    ? "bg-orange-500"
-                                    : t.priority === "MEDIUM"
-                                      ? "bg-amber-400"
-                                      : "bg-blue-400"
-                              }`}
-                            ></span>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                              {t.priority}
-                            </span>
+              <div className="space-y-4 p-6">
+                {sortedTickets.map((t) => (
+                  <article
+                    key={t.id}
+                    className="group rounded-[28px] border border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_100%)] p-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-[0_20px_45px_rgba(109,40,217,0.12)]"
+                  >
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start gap-3">
+                          <div className="rounded-2xl bg-[linear-gradient(135deg,#ede9fe_0%,#f5f3ff_100%)] p-3 text-violet-700">
+                            <Ticket className="h-5 w-5" />
                           </div>
-                          <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                            <CalendarDays className="w-3 h-3" />
-                            {formatDate(t.createdAt)}
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-5 text-center">
-                        <span
-                          className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[10px] font-black border ring-1 uppercase tracking-widest whitespace-nowrap ${getStatusStyle(t.status)}`}
-                        >
-                          {t.status.replace("_", " ")}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-5">
-                        <div className="flex justify-center">
-                          {t.images && t.images.length > 0 ? (
-                            <div className="flex -space-x-2 overflow-hidden hover:space-x-0 transition-all duration-300">
-                              {t.images.slice(0, 3).map((img, idx) => (
-                                <img
-                                  key={idx}
-                                  src={img.startsWith("http") ? img : `/${img}`}
-                                  alt="Attachment"
-                                  className="inline-block h-9 w-9 rounded-lg ring-2 ring-white object-cover shadow-sm bg-slate-100"
-                                />
-                              ))}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="truncate text-lg font-black tracking-tight text-slate-900">
+                                {t.title}
+                              </h4>
+                              <span
+                                className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${getPriorityStyle(t.priority)}`}
+                              >
+                                {t.priority}
+                              </span>
                             </div>
-                          ) : (
-                            <span className="text-[11px] font-semibold text-slate-300 bg-slate-50 px-2 py-1 rounded-md">
-                              None
-                            </span>
-                          )}
+                            <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
+                              {t.description || "No additional description provided."}
+                            </p>
+                          </div>
                         </div>
-                      </td>
 
-                      <td className="px-6 py-5 text-right">
+                        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                              Status
+                            </p>
+                            <div className="mt-2">
+                              <span
+                                className={`inline-flex items-center justify-center rounded-xl border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] ring-1 ${getStatusStyle(t.status)}`}
+                              >
+                                {t.status.replace("_", " ")}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                              Created
+                            </p>
+                            <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                              <CalendarDays className="h-4 w-4 text-violet-500" />
+                              {formatDate(t.createdAt)}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                              Evidence
+                            </p>
+                            <div className="mt-2">
+                              {t.images && t.images.length > 0 ? (
+                                <div className="flex -space-x-2 overflow-hidden">
+                                  {t.images.slice(0, 3).map((img, idx) => (
+                                    <img
+                                      key={idx}
+                                      src={img.startsWith("http") ? img : `/${img}`}
+                                      alt="Attachment"
+                                      className="inline-block h-10 w-10 rounded-xl bg-slate-100 object-cover ring-2 ring-white shadow-sm"
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="inline-flex rounded-full bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-400">
+                                  No attachments
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center">
                         <button
                           onClick={() => {
                             setCommentTicketId(t.id);
                             setCommentOpen(true);
                           }}
-                          className="inline-flex items-center gap-2 px-4 py-2 text-indigo-600 bg-white border border-indigo-100 shadow-sm rounded-xl hover:bg-indigo-50 hover:border-indigo-200 font-bold text-xs transition-all active:scale-95 whitespace-nowrap"
+                          className="inline-flex items-center gap-2 rounded-2xl border border-violet-100 bg-white px-4 py-3 text-sm font-bold text-violet-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-200 hover:bg-violet-50 hover:shadow-[0_16px_34px_rgba(109,40,217,0.16)] active:scale-[0.99] whitespace-nowrap"
                         >
-                          <MessageSquare className="w-4 h-4" />
+                          <MessageSquare className="h-4 w-4" />
                           View Log
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
             )}
           </div>
         </div>
