@@ -1,3 +1,4 @@
+
 package com.smart.Uni.config;
 
 import com.smart.Uni.security.BannedUserFilter;
@@ -7,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,6 +19,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -40,37 +44,70 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
+                // ✅ CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // ✅ Disable CSRF (for API)
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // ✅ Stateless (JWT)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                // ✅ AUTHORIZATION RULES
                 .authorizeHttpRequests(auth -> auth
+
+                        // These MUST come before /api/auth/**
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/auth/me").authenticated()
 
+                        // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
 
-                        // static upload files
-                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
-
+                        // Resource READ is open to all authenticated users (users need to browse resources)
                         .requestMatchers(HttpMethod.GET, "/api/resources/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/resources/**").hasRole("OPERATION_MANAGER")
-                        .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasRole("OPERATION_MANAGER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasRole("OPERATION_MANAGER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/resources/**").hasRole("OPERATION_MANAGER")
+                        // Resource WRITE/DELETE requires operations or admin access
+                        .requestMatchers(HttpMethod.POST, "/api/resources/**").hasAnyRole("OPERATION_MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasAnyRole("OPERATION_MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasAnyRole("OPERATION_MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/resources/**").hasAnyRole("OPERATION_MANAGER", "ADMIN")
 
+                        // Booking management (approve/reject/all) — guarded via @PreAuthorize on methods
                         .requestMatchers("/api/bookings/**").authenticated()
-                        .requestMatchers("/api/tickets/**").authenticated()
 
+                        // Operation Manager dedicated endpoints
                         .requestMatchers("/api/operation-manager/**").hasRole("OPERATION_MANAGER")
+
+                        // Admin-only endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/technician/**").hasAnyRole("ADMIN", "TECHNICIAN")
 
+                        // Everything else
                         .anyRequest().authenticated()
                 )
-                .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2AuthenticationSuccessHandler))
+
+                // ✅ GOOGLE LOGIN
+                .oauth2Login(oauth2 ->
+                        oauth2.successHandler(oAuth2AuthenticationSuccessHandler)
+                )
+
+                // Return 401 for API calls instead of redirecting XHR requests to Google OAuth
+                .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
+                        new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                        new AntPathRequestMatcher("/api/**")
+                ))
+
+                // ✅ JWT filter first
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
+                // ✅ Ban-check filter after JWT (needs authenticated principal)
                 .addFilterAfter(bannedUserFilter, JwtAuthenticationFilter.class)
+
+                // Optional for H2 console / frames
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
         return http.build();
@@ -79,6 +116,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+
+        // trim spaces in comma-separated origins
         List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())

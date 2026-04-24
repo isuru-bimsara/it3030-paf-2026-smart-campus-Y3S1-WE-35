@@ -3,9 +3,10 @@
 // frontend/src/layouts/TechLayout.jsx
 
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import TopbarAccent from "../components/TopbarAccent";
 
 import {
   LayoutDashboard,
@@ -18,25 +19,24 @@ import {
 
 export default function TechLayout() {
   const navigate = useNavigate();
-  const { user, setUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
 
   // ✅ GET LOGGED-IN USER
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await api.get("/auth/me");
+        updateUser(res.data.data);
+      } catch (err) {
+        console.log(err);
+      }
+    };
     fetchUser();
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const res = await api.get("/auth/me");
-      setUser(res.data.data);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+  }, [updateUser]);
 
   // ✅ LOGOUT FUNCTION
   const handleLogout = () => {
-    localStorage.removeItem("token"); // remove JWT
+    logout();
     navigate("/login"); // redirect
   };
 
@@ -144,9 +144,16 @@ export default function TechLayout() {
             </span>
           </h1>
 
-          <button className="relative p-2 text-slate-400 hover:text-indigo-600">
-            <Bell className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-3">
+            <TopbarAccent label="Today" />
+            <NavLink
+              to="/tech/notifications"
+              aria-label="Open notifications"
+              className="relative rounded-2xl border border-slate-200 p-2.5 text-slate-400 shadow-sm transition-colors hover:text-indigo-600"
+            >
+              <Bell className="w-6 h-6" />
+            </NavLink>
+          </div>
         </header>
 
         {/* CONTENT */}

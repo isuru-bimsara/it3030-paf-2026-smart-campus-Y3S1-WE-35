@@ -169,17 +169,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { notificationsApi } from "../../api/notifications";
 import {
-  Bell, CheckCheck, AlertCircle, Info, UserPlus, Settings, Clock, Trash2
+  Bell, CheckCheck, AlertCircle, Info, UserPlus, Settings, Clock, MoreVertical
 } from "lucide-react";
 import useNotificationClick from "../../utils/useNotificationClick";
-import { useNotifications } from "../../context/NotificationContext";
-
 
 export default function AdminNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { fetchUnreadCount } = useNotifications();
-
 
   const handleNotificationClick = useNotificationClick(setNotifications, "ADMIN");
 
@@ -207,36 +203,8 @@ export default function AdminNotifications() {
         const updated = prev.map((n) => ({ ...n, read: true }));
         return sortNotifications(updated);
       });
-      fetchUnreadCount();
     } catch (err) {
-
       console.error("Failed to mark all as read");
-    }
-  };
-
-  const handleDelete = async (e, id) => {
-    e.stopPropagation();
-    if (!window.confirm("Delete this notification?")) return;
-    try {
-      await notificationsApi.delete(id);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-      fetchUnreadCount();
-    } catch (err) {
-
-      console.error("Failed to delete notification");
-    }
-  };
-
-  const handleDeleteAll = async () => {
-    if (!window.confirm("Are you sure you want to delete all notifications?"))
-      return;
-    try {
-      await notificationsApi.deleteAll();
-      setNotifications([]);
-      fetchUnreadCount();
-    } catch (err) {
-
-      console.error("Failed to delete all notifications");
     }
   };
 
@@ -260,26 +228,13 @@ export default function AdminNotifications() {
           <p className="text-slate-500 mt-1 font-medium">Monitor system logs and user alerts.</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {notifications.length > 0 && notifications.some(n => !n.read) && (
-            <button
-              onClick={handleMarkAllRead}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-indigo-600 bg-white border border-indigo-100 rounded-xl hover:bg-indigo-50 transition-all shadow-sm active:scale-95"
-            >
-              <CheckCheck className="w-4 h-4" />
-              Mark all read
-            </button>
-          )}
-          {notifications.length > 0 && (
-            <button
-              onClick={handleDeleteAll}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-rose-600 bg-white border border-rose-100 rounded-xl hover:bg-rose-50 transition-all shadow-sm active:scale-95"
-            >
-              <Trash2 className="w-4 h-4" />
-              Clear All
-            </button>
-          )}
-        </div>
+        <button
+          onClick={handleMarkAllRead}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-indigo-600 bg-white border border-indigo-100 rounded-xl hover:bg-indigo-50 transition-all shadow-sm active:scale-95"
+        >
+          <CheckCheck className="w-4 h-4" />
+          Mark all read
+        </button>
       </div>
 
       <div className="space-y-4">
@@ -325,12 +280,8 @@ export default function AdminNotifications() {
                 </h3>
               </div>
 
-              <button
-                onClick={(e) => handleDelete(e, n.id)}
-                className="opacity-0 group-hover:opacity-100 p-2 hover:bg-rose-50 rounded-lg transition-all text-slate-300 hover:text-rose-500"
-                title="Delete notification"
-              >
-                <Trash2 className="w-4 h-4" />
+              <button className="opacity-0 group-hover:opacity-100 p-2 hover:bg-slate-50 rounded-lg transition-all text-slate-400">
+                <MoreVertical className="w-4 h-4" />
               </button>
             </div>
           );

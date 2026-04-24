@@ -5,17 +5,12 @@ package com.smart.Uni.service;
 import com.smart.Uni.dto.response.NotificationResponse;
 import com.smart.Uni.entity.*;
 import com.smart.Uni.enums.NotificationType;
-import com.smart.Uni.enums.TicketStatus;
 import com.smart.Uni.enums.UserRole;
 import com.smart.Uni.exception.ResourceNotFoundException;
 import com.smart.Uni.repository.NotificationRepository;
 import com.smart.Uni.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,27 +21,24 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
 
-    private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-
-    /* =========================================================
-       BOOKING NOTIFICATIONS (needed by BookingService)
-       ========================================================= */
+    /* ---------- PUBLIC NOTIFIERS ---------- */
 
     public void notifyBookingPending(Booking booking) {
+        createNotification(
+                booking.getUser(),
+                NotificationType.BOOKING_PENDING,
+                "Your booking request for " + booking.getResource().getName() + " is pending approval.",
+                booking.getId()
+        );
         notifyAdminsAndOps(
                 "New booking pending approval for resource: " + booking.getResource().getName(),
                 NotificationType.BOOKING_PENDING,
-                booking.getId()
-        );
+                booking.getId());
     }
 
     public void notifyBookingApproved(Booking booking) {
-        createNotification(
-                booking.getUser(),
-                NotificationType.BOOKING_APPROVED,
-                "Your booking for " + booking.getResource().getName() + " has been approved.",
-                booking.getId()
-        );
+        createNotification(booking.getUser(), NotificationType.BOOKING_APPROVED,
+                "Your booking for " + booking.getResource().getName() + " has been approved.", booking.getId());
     }
 
     public void notifyBookingRejected(Booking booking) {
@@ -58,113 +50,62 @@ public class NotificationService {
     }
 
     public void notifyBookingCancelled(Booking booking) {
-        createNotification(
-                booking.getUser(),
-                NotificationType.BOOKING_CANCELLED,
-                "Your booking for " + booking.getResource().getName() + " was cancelled.",
-                booking.getId()
-        );
+        createNotification(booking.getUser(), NotificationType.BOOKING_CANCELLED,
+                "Your booking for " + booking.getResource().getName() + " was cancelled.", booking.getId());
     }
 
-    /* =========================================================
-       TICKET NOTIFICATIONS
-       ========================================================= */
-
-    // kept for backward compatibility if older code still calls this
     public void notifyTicketUpdated(Ticket ticket) {
-        createNotification(
-                ticket.getReporter(),
-                NotificationType.TICKET_UPDATED,
-                "Your ticket '" + ticket.getTitle() + "' status updated to: " + ticket.getStatus(),
-                ticket.getId()
-        );
-    }
-
-    public void notifyTicketCreated(Ticket ticket) {
-        notifyByRole(
-                UserRole.TECHNICIAN,
-                "New ticket created: '" + ticket.getTitle() + "'",
-                NotificationType.TICKET_CREATED,
-                ticket.getId()
-        );
+        createNotification(ticket.getReporter(), NotificationType.TICKET_UPDATED,
+                "Your ticket '" + ticket.getTitle() + "' status updated to: " + ticket.getStatus(), ticket.getId());
     }
 
     public void notifyTicketAssigned(Ticket ticket) {
         if (ticket.getAssignee() != null) {
-            createNotification(
-                    ticket.getAssignee(),
-                    NotificationType.TICKET_ASSIGNED,
-                    "Ticket '" + ticket.getTitle() + "' assigned to you.",
-                    ticket.getId()
-            );
+            createNotification(ticket.getAssignee(), NotificationType.TICKET_ASSIGNED,
+                    "Ticket '" + ticket.getTitle() + "' has been assigned to you.", ticket.getId());
         }
     }
 
-    // kept for backward compatibility if existing code calls notifyTicketStatusChanged(...)
+    /* NEW: ticket created -> technicians */
+    public void notifyTicketCreated(Ticket ticket) {
+        createNotification(
+                ticket.getReporter(),
+                NotificationType.TICKET_CREATED,
+                "Your ticket '" + ticket.getTitle() + "' was submitted successfully.",
+                ticket.getId()
+        );
+        notifyByRole(UserRole.TECHNICIAN,
+                "New ticket: " + ticket.getTitle(),
+                NotificationType.TICKET_CREATED,
+                ticket.getId());
+    }
+
+    /* NEW: ticket status change -> reporter + assignee */
     public void notifyTicketStatusChanged(Ticket ticket) {
-        createNotification(
-                ticket.getReporter(),
-                NotificationType.TICKET_STATUS_CHANGED,
-                "Ticket '" + ticket.getTitle() + "' status: " + ticket.getStatus(),
-                ticket.getId()
-        );
+        createNotification(ticket.getReporter(), NotificationType.TICKET_STATUS_CHANGED,
+                "Ticket '" + ticket.getTitle() + "' status: " + ticket.getStatus(), ticket.getId());
         if (ticket.getAssignee() != null &&
                 !ticket.getAssignee().getId().equals(ticket.getReporter().getId())) {
-            createNotification(
-                    ticket.getAssignee(),
-                    NotificationType.TICKET_STATUS_CHANGED,
-                    "Ticket '" + ticket.getTitle() + "' status: " + ticket.getStatus(),
-                    ticket.getId()
-            );
+            createNotification(ticket.getAssignee(), NotificationType.TICKET_STATUS_CHANGED,
+                    "Ticket '" + ticket.getTitle() + "' status: " + ticket.getStatus(), ticket.getId());
         }
     }
 
-    // new strict workflow notifier
-    public void notifyTicketTransition(Ticket ticket, TicketStatus from, TicketStatus to, String optionalMessage) {
-        String timestamp = LocalDateTime.now().format(TS);
-        String msg = "Ticket '" + ticket.getTitle() + "' moved " + from + " -> " + to + " at " + timestamp;
-        if (optionalMessage != null && !optionalMessage.isBlank()) {
-            msg += ". " + optionalMessage;
-        }
-
-        NotificationType type = switch (to) {
-            case IN_PROGRESS -> NotificationType.TICKET_IN_PROGRESS;
-            case RESOLVED -> NotificationType.TICKET_RESOLVED;
-            case CLOSED -> NotificationType.TICKET_CLOSED;
-            case REJECTED -> NotificationType.TICKET_REJECTED;
-            default -> NotificationType.TICKET_STATUS_CHANGED;
-        };
-
-        // notify reporter always
-        createNotification(ticket.getReporter(), type, msg, ticket.getId());
-
-        // notify assignee too if different
-        if (ticket.getAssignee() != null &&
-                !ticket.getAssignee().getId().equals(ticket.getReporter().getId())) {
-            createNotification(ticket.getAssignee(), type, msg, ticket.getId());
-        }
-    }
-
-    public void notifyResolutionAcknowledged(Ticket ticket) {
-        createNotification(
-                ticket.getReporter(),
-                NotificationType.TICKET_RESOLUTION_ACKNOWLEDGED,
-                "You acknowledged ticket '" + ticket.getTitle() + "'. Ticket is now CLOSED.",
-                ticket.getId()
-        );
-
-        if (ticket.getAssignee() != null) {
-            createNotification(
-                    ticket.getAssignee(),
-                    NotificationType.TICKET_CLOSED,
-                    "User acknowledged resolution for '" + ticket.getTitle() + "'. Ticket auto-closed.",
-                    ticket.getId()
-            );
-        }
-    }
+    /* NEW: comment added -> reporter + assignee (except commenter) */
+//    public void notifyCommentAdded(Ticket ticket, User commenter) {
+//        if (!commenter.getId().equals(ticket.getReporter().getId())) {
+//            createNotification(ticket.getReporter(), NotificationType.COMMENT_ADDED,
+//                    commenter.getName() + " commented on your ticket '" + ticket.getTitle() + "'", ticket.getId());
+//        }
+//        if (ticket.getAssignee() != null &&
+//                !commenter.getId().equals(ticket.getAssignee().getId())) {
+//            createNotification(ticket.getAssignee(), NotificationType.COMMENT_ADDED,
+//                    commenter.getName() + " commented on ticket '" + ticket.getTitle() + "'", ticket.getId());
+//        }
+//    }
 
     public void notifyCommentAdded(Ticket ticket, User commenter) {
-        // reporter (except commenter)
+        // Notify reporter (except if reporter is the commenter)
         if (!commenter.getId().equals(ticket.getReporter().getId())) {
             createNotification(
                     ticket.getReporter(),
@@ -174,7 +115,7 @@ public class NotificationService {
             );
         }
 
-        // assignee (except commenter)
+        // If ticket has assignee -> notify assignee (except commenter)
         if (ticket.getAssignee() != null) {
             if (!commenter.getId().equals(ticket.getAssignee().getId())) {
                 createNotification(
@@ -184,10 +125,10 @@ public class NotificationService {
                         ticket.getId()
                 );
             }
-            return; // don't also broadcast to all technicians
+            return; // important: don't also broadcast to all technicians
         }
 
-        // no assignee -> broadcast to technicians except commenter
+        // Fallback: no assignee yet -> notify all technicians except commenter
         userRepository.findByRole(UserRole.TECHNICIAN).forEach(tech -> {
             if (!tech.getId().equals(commenter.getId())) {
                 createNotification(
@@ -200,53 +141,38 @@ public class NotificationService {
         });
     }
 
-    /* =========================================================
-       RESOURCE + ROLE NOTIFICATIONS (needed by existing services)
-       ========================================================= */
-
     public void notifyResourceCreated(Resource resource, User actor) {
         notifyAdminsAndOps(
                 (actor != null ? actor.getName() : "An admin") + " created resource: " + resource.getName(),
                 NotificationType.RESOURCE_CREATED,
-                resource.getId()
-        );
+                resource.getId());
     }
 
     public void notifyResourceUpdated(Resource resource, User actor) {
         notifyAdminsAndOps(
                 (actor != null ? actor.getName() : "An admin") + " updated resource: " + resource.getName(),
                 NotificationType.RESOURCE_UPDATED,
-                resource.getId()
-        );
+                resource.getId());
     }
 
     public void notifyResourceDeleted(Long resourceId, String resourceName, User actor) {
         notifyAdminsAndOps(
                 (actor != null ? actor.getName() : "An admin") + " deleted resource: " + resourceName,
                 NotificationType.RESOURCE_DELETED,
-                resourceId
-        );
+                resourceId);
     }
 
     public void notifyRoleChanged(User targetUser, UserRole newRole, String changedBy) {
-        createNotification(
-                targetUser,
-                NotificationType.ROLE_CHANGED,
-                "Your role was changed to " + newRole + " by " + changedBy,
-                targetUser.getId()
-        );
+        createNotification(targetUser, NotificationType.ROLE_CHANGED,
+                "Your role was changed to " + newRole + " by " + changedBy, targetUser.getId());
     }
 
-    /* =========================================================
-       QUERIES + ACTIONS (used by NotificationController)
-       ========================================================= */
+    /* ---------- QUERIES ---------- */
 
     public List<NotificationResponse> getUserNotifications(String email) {
         User user = findUserByEmail(email);
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+        return notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
+                .map(this::toResponse).collect(Collectors.toList());
     }
 
     public long getUnreadCount(String email) {
@@ -256,49 +182,24 @@ public class NotificationService {
 
     public NotificationResponse markAsRead(Long id, String email) {
         User user = findUserByEmail(email);
-        Notification n = notificationRepository.findByIdAndUserId(id, user.getId())
+        Notification notification = notificationRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
-        n.setRead(true);
-        return toResponse(notificationRepository.save(n));
+        notification.setRead(true);
+        return toResponse(notificationRepository.save(notification));
     }
 
-    // @Transactional
-    // public void markAllAsRead(String email) {
-    //     User user = findUserByEmail(email);
-    //     List<Notification> unread = notificationRepository.findByUserIdAndReadFalse(user.getId());
-    //     unread.forEach(n -> n.setRead(true));
-    //     notificationRepository.saveAll(unread);
-    // }
-
-    // @Transactional
-    // public void deleteNotification(Long id, String email) {
-    //     User user = findUserByEmail(email);
-    //     Notification n = notificationRepository.findByIdAndUserId(id, user.getId())
-    //             .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
-    //     notificationRepository.delete(n);
-    // }
-
-    @Transactional
-public void deleteNotification(Long id, String email) {
-    User user = findUserByEmail(email);
-    int deleted = notificationRepository.deleteByIdAndUserId(id, user.getId());
-    if (deleted == 0) {
-        throw new ResourceNotFoundException("Notification not found");
+    public void markAllAsRead(String email) {
+        User user = findUserByEmail(email);
+        List<Notification> unread = notificationRepository.findByUserIdAndReadFalse(user.getId());
+        unread.forEach(n -> n.setRead(true));
+        notificationRepository.saveAll(unread);
     }
-}
 
-@Transactional
-public void deleteAllNotifications(String email) {
-    User user = findUserByEmail(email);
-    int deleted = notificationRepository.deleteByUserId(user.getId());
-    System.out.println("Deleted notifications: " + deleted + " for userId=" + user.getId());
-}
+    /* ---------- INTERNAL HELPERS ---------- */
 
-
-
-    /* =========================================================
-       HELPERS
-       ========================================================= */
+    private void notifyAdmins(String message, NotificationType type, Long relatedId) {
+        notifyByRole(UserRole.ADMIN, message, type, relatedId);
+    }
 
     private void notifyAdminsAndOps(String message, NotificationType type, Long relatedId) {
         notifyByRole(UserRole.ADMIN, message, type, relatedId);
@@ -306,18 +207,18 @@ public void deleteAllNotifications(String email) {
     }
 
     private void notifyByRole(UserRole role, String message, NotificationType type, Long relatedId) {
-        userRepository.findByRole(role).forEach(u -> createNotification(u, type, message, relatedId));
+        userRepository.findByRole(role)
+                .forEach(u -> createNotification(u, type, message, relatedId));
     }
 
     private void createNotification(User user, NotificationType type, String message, Long relatedId) {
-        notificationRepository.save(
-                Notification.builder()
-                        .user(user)
-                        .type(type)
-                        .message(message)
-                        .relatedId(relatedId)
-                        .build()
-        );
+        Notification notification = Notification.builder()
+                .user(user)
+                .type(type)
+                .message(message)
+                .relatedId(relatedId)
+                .build();
+        notificationRepository.save(notification);
     }
 
     private User findUserByEmail(String email) {

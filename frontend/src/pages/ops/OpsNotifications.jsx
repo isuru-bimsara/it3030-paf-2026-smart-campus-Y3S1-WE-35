@@ -12,21 +12,12 @@ import {
   Settings,
   Clock,
   Inbox,
-  Trash2,
 } from "lucide-react";
-import { useNotifications } from "../../context/NotificationContext";
-import useNotificationClick from "../../utils/useNotificationClick";
-
-
 
 export default function OpsNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL"); // ALL | UNREAD | READ
-  const { fetchUnreadCount } = useNotifications();
-  const handleNotificationClick = useNotificationClick(setNotifications, "OPERATION_MANAGER");
-
-
 
   const sortNotifications = useCallback((data) => {
     return [...data].sort((a, b) => {
@@ -56,9 +47,7 @@ export default function OpsNotifications() {
         );
         return sortNotifications(updated);
       });
-      fetchUnreadCount();
     } catch {
-
       // silent
     }
   };
@@ -70,36 +59,8 @@ export default function OpsNotifications() {
         const updated = prev.map((n) => ({ ...n, read: true }));
         return sortNotifications(updated);
       });
-      fetchUnreadCount();
     } catch {
-
       console.error("Failed to mark all as read");
-    }
-  };
-
-  const handleDelete = async (e, id) => {
-    e.stopPropagation();
-    if (!window.confirm("Delete this notification?")) return;
-    try {
-      await notificationsApi.delete(id);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-      fetchUnreadCount();
-    } catch {
-
-      console.error("Failed to delete notification");
-    }
-  };
-
-  const handleDeleteAll = async () => {
-    if (!window.confirm("Are you sure you want to delete all notifications?"))
-      return;
-    try {
-      await notificationsApi.deleteAll();
-      setNotifications([]);
-      fetchUnreadCount();
-    } catch {
-
-      console.error("Failed to delete all notifications");
     }
   };
 
@@ -112,7 +73,7 @@ export default function OpsNotifications() {
       case "SYSTEM":
         return { icon: <Settings className="w-5 h-5" />, color: "text-amber-600 bg-amber-50 border-amber-100", accent: "bg-amber-500" };
       default:
-        return { icon: <Info className="w-5 h-5" />, color: "text-indigo-600 bg-indigo-50 border-indigo-100", accent: "bg-indigo-500" };
+        return { icon: <Info className="w-5 h-5" />, color: "text-emerald-600 bg-emerald-50 border-emerald-100", accent: "bg-emerald-500" };
     }
   };
 
@@ -129,7 +90,7 @@ export default function OpsNotifications() {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200">
+          <div className="relative p-3 bg-emerald-600 rounded-2xl shadow-lg shadow-emerald-200">
             <Bell className="text-white w-6 h-6" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
@@ -145,26 +106,15 @@ export default function OpsNotifications() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllRead}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-indigo-700 bg-white border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all shadow-sm active:scale-95"
-            >
-              <CheckCheck className="w-4 h-4" />
-              Mark all read
-            </button>
-          )}
-          {notifications.length > 0 && (
-            <button
-              onClick={handleDeleteAll}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-rose-600 bg-white border border-rose-200 rounded-xl hover:bg-rose-50 transition-all shadow-sm active:scale-95"
-            >
-              <Trash2 className="w-4 h-4" />
-              Clear All
-            </button>
-          )}
-        </div>
+        {unreadCount > 0 && (
+          <button
+            onClick={handleMarkAllRead}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-emerald-700 bg-white border border-emerald-200 rounded-xl hover:bg-emerald-50 transition-all shadow-sm active:scale-95"
+          >
+            <CheckCheck className="w-4 h-4" />
+            Mark all read
+          </button>
+        )}
       </div>
 
       {/* FILTER TABS */}
@@ -220,11 +170,11 @@ export default function OpsNotifications() {
             return (
               <div
                 key={n.id}
-                onClick={() => handleNotificationClick(n)}
+                onClick={() => handleMarkAsRead(n)}
                 className={`group relative flex items-start gap-4 p-5 rounded-2xl border transition-all duration-300 cursor-pointer ${
                   n.read
                     ? "bg-white border-slate-100 opacity-60"
-                    : "bg-white border-indigo-100 shadow-md shadow-indigo-50/60 hover:shadow-lg ring-1 ring-indigo-50"
+                    : "bg-white border-emerald-100 shadow-md shadow-emerald-50/60 hover:shadow-lg ring-1 ring-emerald-50"
                 }`}
               >
                 {/* Unread accent bar */}
@@ -240,7 +190,7 @@ export default function OpsNotifications() {
                 {/* Body */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${n.read ? "text-slate-400" : "text-indigo-600"}`}>
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${n.read ? "text-slate-400" : "text-emerald-600"}`}>
                       {n.type || "General"}
                     </span>
                     <div className="flex items-center gap-1.5 text-slate-400">
@@ -262,21 +212,11 @@ export default function OpsNotifications() {
                   </p>
 
                   {!n.read && (
-                    <span className="inline-flex mt-2 items-center gap-1 text-[10px] font-black text-indigo-600 uppercase tracking-widest">
-                      <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full inline-block" />
+                    <span className="inline-flex mt-2 items-center gap-1 text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block" />
                       Unread — click to mark as read
                     </span>
                   )}
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={(e) => handleDelete(e, n.id)}
-                    className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
               </div>
             );

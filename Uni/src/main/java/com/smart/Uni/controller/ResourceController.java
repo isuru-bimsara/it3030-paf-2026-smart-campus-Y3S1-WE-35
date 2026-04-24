@@ -1,131 +1,18 @@
-//
-//
-//package com.smart.Uni.controller;
-//
-//import com.smart.Uni.dto.request.ResourceRequest;
-//import com.smart.Uni.dto.response.ResourceResponse;
-//import com.smart.Uni.service.ResourceService;
-//import lombok.RequiredArgsConstructor;
-//import org.springframework.beans.factory.annotation.Value;
-//import org.springframework.http.ResponseEntity;
-//import org.springframework.security.core.annotation.AuthenticationPrincipal;
-//import org.springframework.security.core.userdetails.UserDetails;
-//import org.springframework.web.bind.annotation.*;
-//import org.springframework.web.multipart.MultipartFile;
-//import java.io.File;
-//import java.io.IOException;
-//import java.util.List;
-//
-//@RestController
-//@RequestMapping("/api/resources")
-//@RequiredArgsConstructor
-//public class ResourceController {
-//
-//    private final ResourceService resourceService;
-//
-//    @Value("${app.upload.dir:uploads}")
-//    private String uploadDir;
-//
-//    @GetMapping
-//    public ResponseEntity<?> getAll() {
-//        return ResponseEntity.ok(resourceService.getAllResources());
-//    }
-//
-////    @PostMapping
-////    public ResponseEntity<?> create(@RequestBody ResourceRequest request) {
-////        return ResponseEntity.ok(resourceService.createResource(request));
-////    }
-////
-////    @PutMapping("/{id}")
-////    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody ResourceRequest request) {
-////        return ResponseEntity.ok(resourceService.updateResource(id, request));
-////    }
-////
-////    @DeleteMapping("/{id}")
-////    public ResponseEntity<?> delete(@PathVariable Long id) {
-////        resourceService.deleteResource(id);
-////        return ResponseEntity.ok("Resource deleted");
-////    }
-//
-//    @PostMapping
-//    public ResponseEntity<?> create(@RequestBody ResourceRequest request,
-//                                    @AuthenticationPrincipal UserDetails userDetails) {
-//        return ResponseEntity.ok(resourceService.createResource(request, userDetails.getUsername()));
-//    }
-//
-//    @PutMapping("/{id}")
-//    public ResponseEntity<?> update(@PathVariable Long id,
-//                                    @RequestBody ResourceRequest request,
-//                                    @AuthenticationPrincipal UserDetails userDetails) {
-//        return ResponseEntity.ok(resourceService.updateResource(id, request, userDetails.getUsername()));
-//    }
-//
-//    @DeleteMapping("/{id}")
-//    public ResponseEntity<?> delete(@PathVariable Long id,
-//                                    @AuthenticationPrincipal UserDetails userDetails) {
-//        resourceService.deleteResource(id, userDetails.getUsername());
-//        return ResponseEntity.ok("Resource deleted");
-//    }
-//
-//    @PostMapping("/upload")
-//    public ResponseEntity<?> upload(@RequestParam("file") MultipartFile file) {
-//
-//        try {
-//            // ✅ use property path
-//            File dir = new File(uploadDir);
-//
-//            if (!dir.exists()) {
-//                dir.mkdirs(); // create C:/uploads
-//            }
-//
-//            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-//
-//            File destination = new File(dir, fileName);
-//
-//            file.transferTo(destination); // ✅ now saves correctly
-//
-//            String fileUrl = "/uploads/" + fileName;
-//
-//            return ResponseEntity.ok(fileUrl);
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return ResponseEntity.status(500).body("Upload failed: " + e.getMessage());
-//        }
-//    }
-//
-////    @GetMapping
-////    public ResponseEntity<List<ResourceResponse>> getAll() {
-////        return ResponseEntity.ok(resourceService.getAllResources());
-////    }
-//
-//    @GetMapping("/available")
-//    public ResponseEntity<List<ResourceResponse>> getAvailable() {
-//        return ResponseEntity.ok(resourceService.getAllResources()); // or filter later
-//    }
-//
-//    @GetMapping("/{id}")
-//    public ResponseEntity<ResourceResponse> getById(@PathVariable Long id) {
-//        return ResponseEntity.ok(resourceService.getResourceById(id));
-//    }
-//}
-
-
 package com.smart.Uni.controller;
 
 import com.smart.Uni.dto.request.ResourceRequest;
-import com.smart.Uni.dto.response.ResourceResponse;
+import com.smart.Uni.entity.Resource;
 import com.smart.Uni.service.ResourceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.File;
-import java.io.IOException;
+
 import java.util.List;
 
 @RestController
@@ -135,63 +22,51 @@ public class ResourceController {
 
     private final ResourceService resourceService;
 
-    @Value("${app.upload.dir:uploads}")
-    private String uploadDir;
-
     @GetMapping
-    public ResponseEntity<?> getAll() {
-        return ResponseEntity.ok(resourceService.getAllResources());
-    }
-
-    @PostMapping
-    @PreAuthorize("hasRole('OPERATION_MANAGER')")
-    public ResponseEntity<?> create(@RequestBody ResourceRequest request,
-                                    @AuthenticationPrincipal UserDetails userDetails) {
-        String actorEmail = userDetails != null ? userDetails.getUsername() : null;
-        return ResponseEntity.ok(resourceService.createResource(request, actorEmail));
-    }
-
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('OPERATION_MANAGER')")
-    public ResponseEntity<?> update(@PathVariable Long id,
-                                    @RequestBody ResourceRequest request,
-                                    @AuthenticationPrincipal UserDetails userDetails) {
-        String actorEmail = userDetails != null ? userDetails.getUsername() : null;
-        return ResponseEntity.ok(resourceService.updateResource(id, request, actorEmail));
-    }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('OPERATION_MANAGER')")
-    public ResponseEntity<?> delete(@PathVariable Long id,
-                                    @AuthenticationPrincipal UserDetails userDetails) {
-        String actorEmail = userDetails != null ? userDetails.getUsername() : null;
-        resourceService.deleteResource(id, actorEmail);
-        return ResponseEntity.ok("Resource deleted");
-    }
-
-    @PostMapping("/upload")
-    @PreAuthorize("hasRole('OPERATION_MANAGER')")
-    public ResponseEntity<?> upload(@RequestParam("file") MultipartFile file) {
-        try {
-            File dir = new File(uploadDir);
-            if (!dir.exists()) dir.mkdirs();
-            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-            File destination = new File(dir, fileName);
-            file.transferTo(destination);
-            return ResponseEntity.ok("/uploads/" + fileName);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Upload failed: " + e.getMessage());
-        }
+    public List<Resource> getAllResources() {
+        return resourceService.getAllResources();
     }
 
     @GetMapping("/available")
-    public ResponseEntity<List<ResourceResponse>> getAvailable() {
-        return ResponseEntity.ok(resourceService.getAllResources());
+    public List<Resource> getAvailableResources() {
+        return resourceService.getAvailableResources();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ResourceResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(resourceService.getResourceById(id));
+    public Resource getResourceById(@PathVariable Long id) {
+        return resourceService.getResourceById(id);
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('OPERATION_MANAGER', 'ADMIN')")
+    public ResponseEntity<Resource> createResource(
+            @Valid @RequestBody ResourceRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(resourceService.createResource(request, userDetails.getUsername()));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OPERATION_MANAGER', 'ADMIN')")
+    public Resource updateResource(
+            @PathVariable Long id,
+            @Valid @RequestBody ResourceRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return resourceService.updateResource(id, request, userDetails.getUsername());
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OPERATION_MANAGER', 'ADMIN')")
+    public ResponseEntity<Void> deleteResource(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        resourceService.deleteResource(id, userDetails.getUsername());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/upload")
+    @PreAuthorize("hasAnyRole('OPERATION_MANAGER', 'ADMIN')")
+    public String uploadImage(@RequestPart("file") MultipartFile file) {
+        return resourceService.uploadImage(file);
     }
 }

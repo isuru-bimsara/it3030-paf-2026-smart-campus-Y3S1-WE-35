@@ -223,6 +223,8 @@ public class TicketService {
     private static final String UPLOAD_DIR = "uploads/tickets/";
 
     public TicketResponse createTicket(TicketRequest request, List<MultipartFile> images, String email) throws IOException {
+        validateTicketRequest(request);
+
         User reporter = findUserByEmail(email);
 
         List<String> imagePaths = new ArrayList<>();
@@ -239,6 +241,7 @@ public class TicketService {
                 .reporter(reporter)
                 .title(request.getTitle())
                 .description(request.getDescription())
+                .contactDetails(request.getContactDetails().trim())
                 .category(request.getCategory() != null ? request.getCategory() : TicketCategory.OTHER)
                 .priority(request.getPriority() != null ? request.getPriority() : TicketPriority.MEDIUM)
                 .images(imagePaths)
@@ -293,7 +296,7 @@ public class TicketService {
         Ticket ticket = findTicketById(id);
 
         if (ticket.getStatus() == TicketStatus.CLOSED) {
-            throw new RuntimeException("Closed ticket cannot be changed");
+            throw new IllegalArgumentException("Closed ticket cannot be changed");
         }
 
         validateStatusTransition(ticket.getStatus(), newStatus);
@@ -314,10 +317,10 @@ public class TicketService {
         User user = findUserByEmail(email);
 
         if (!ticket.getReporter().getId().equals(user.getId())) {
-            throw new RuntimeException("You can only delete your own tickets.");
+            throw new IllegalArgumentException("You can only delete your own tickets.");
         }
         if (!(ticket.getStatus() == TicketStatus.OPEN || ticket.getStatus() == TicketStatus.IN_PROGRESS)) {
-            throw new RuntimeException("Only open/in-progress tickets can be deleted.");
+            throw new IllegalArgumentException("Only open/in-progress tickets can be deleted.");
         }
         ticketRepository.deleteById(id);
     }
@@ -330,6 +333,15 @@ public class TicketService {
     }
 
     /* ---------- helpers ---------- */
+
+    private void validateTicketRequest(TicketRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Ticket data is required");
+        }
+        if (request.getContactDetails() == null || request.getContactDetails().isBlank()) {
+            throw new IllegalArgumentException("Contact details are required");
+        }
+    }
 
     private String saveImage(MultipartFile file) throws IOException {
         Path uploadPath = Paths.get(UPLOAD_DIR);
@@ -363,6 +375,7 @@ public class TicketService {
                 .assigneeName(t.getAssignee() != null ? t.getAssignee().getName() : null)
                 .title(t.getTitle())
                 .description(t.getDescription())
+                .contactDetails(t.getContactDetails())
                 .category(t.getCategory())
                 .priority(t.getPriority())
                 .status(t.getStatus())

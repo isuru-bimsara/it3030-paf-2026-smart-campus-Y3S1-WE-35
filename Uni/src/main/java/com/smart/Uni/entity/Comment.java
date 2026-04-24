@@ -27,9 +27,6 @@ public class Comment {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Builder.Default
-    private boolean deleted = false;
-
     @CreationTimestamp
     private LocalDateTime createdAt;
 }
