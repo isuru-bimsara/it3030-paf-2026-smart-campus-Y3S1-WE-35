@@ -3,6 +3,7 @@
 
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import TopbarAccent from "../components/TopbarAccent";
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -118,12 +119,15 @@ export default function OpsLayout() {
             </span>
           </p>
 
-          <NavLink
-            to="/operation-manager/notifications"
-            className="relative p-2 text-slate-400 hover:text-emerald-600 transition-colors"
-          >
-            <Bell className="w-6 h-6" />
-          </NavLink>
+          <div className="flex items-center gap-3">
+            <TopbarAccent tone="emerald" label="Today" />
+            <NavLink
+              to="/operation-manager/notifications"
+              className="relative rounded-2xl border border-slate-200 p-2.5 text-slate-400 shadow-sm transition-colors hover:text-emerald-600"
+            >
+              <Bell className="w-6 h-6" />
+            </NavLink>
+          </div>
         </header>
 
         {/* PAGE CONTENT */}

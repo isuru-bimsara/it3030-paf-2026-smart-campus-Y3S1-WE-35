@@ -4,6 +4,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
+import TopbarAccent from "../components/TopbarAccent";
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -145,13 +146,16 @@ export default function UserLayout() {
               {user?.name || "User"}
             </span>
           </h1>
-          <NavLink
-            to="/user/notifications"
-            aria-label="Open notifications"
-            className="relative p-2 text-slate-400 hover:text-indigo-600 transition-colors"
-          >
-            <Bell className="w-6 h-6" />
-          </NavLink>
+          <div className="flex items-center gap-3">
+            <TopbarAccent label="Today" />
+            <NavLink
+              to="/user/notifications"
+              aria-label="Open notifications"
+              className="relative rounded-2xl border border-slate-200 p-2.5 text-slate-400 shadow-sm transition-colors hover:text-indigo-600"
+            >
+              <Bell className="w-6 h-6" />
+            </NavLink>
+          </div>
         </header>
 
         {/* CONTENT */}
