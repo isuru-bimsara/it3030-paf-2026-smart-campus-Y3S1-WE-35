@@ -262,21 +262,12 @@ public class NotificationService {
         return toResponse(notificationRepository.save(n));
     }
 
-    // @Transactional
-    // public void markAllAsRead(String email) {
-    //     User user = findUserByEmail(email);
-    //     List<Notification> unread = notificationRepository.findByUserIdAndReadFalse(user.getId());
-    //     unread.forEach(n -> n.setRead(true));
-    //     notificationRepository.saveAll(unread);
-    // }
-
-    // @Transactional
-    // public void deleteNotification(Long id, String email) {
-    //     User user = findUserByEmail(email);
-    //     Notification n = notificationRepository.findByIdAndUserId(id, user.getId())
-    //             .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
-    //     notificationRepository.delete(n);
-    // }
+    @Transactional
+    public void markAllAsRead(String email) {
+        User user = findUserByEmail(email);
+        int updated = notificationRepository.markAllAsReadByUserId(user.getId());
+        System.out.println("Marked " + updated + " notifications as read for userId=" + user.getId());
+    }
 
     @Transactional
 public void deleteNotification(Long id, String email) {

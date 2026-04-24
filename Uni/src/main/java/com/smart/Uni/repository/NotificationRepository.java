@@ -16,10 +16,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     long countByUserIdAndReadFalse(Long userId);
     Optional<Notification> findByIdAndUserId(Long id, Long userId);
 
-    // @Modifying
-    // @Transactional
-    // @Query("DELETE FROM Notification n WHERE n.user.id = :userId")
-    // void deleteByUserId(Long userId);
+   
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Notification n SET n.read = true WHERE n.user.id = :userId AND n.read = false")
+    int markAllAsReadByUserId(Long userId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM Notification n WHERE n.user.id = :userId")
