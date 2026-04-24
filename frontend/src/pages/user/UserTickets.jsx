@@ -235,24 +235,61 @@ export default function UserTickets() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20 p-6 md:p-0">
-      <section className="relative overflow-hidden rounded-[36px] border border-violet-100 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_48%,#f5f3ff_100%)] px-6 py-8 shadow-[0_24px_70px_rgba(109,40,217,0.10)] md:px-8 xl:px-10">
-        <div className="pointer-events-none absolute -left-20 top-0 h-60 w-60 rounded-full bg-violet-300/20 blur-3xl" />
-        <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-purple-300/20 blur-3xl" />
+      <style>{`
+        @keyframes ticketFadeUp {
+          0% { opacity: 0; transform: translate3d(0, 16px, 0); }
+          100% { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+
+        @keyframes ticketFloat {
+          0%, 100% { transform: translate3d(0, 0, 0); }
+          50% { transform: translate3d(0, -8px, 0); }
+        }
+
+        @keyframes ticketGradientStream {
+          0% { transform: translateX(-20%); opacity: 0.55; }
+          50% { transform: translateX(18%); opacity: 1; }
+          100% { transform: translateX(-20%); opacity: 0.55; }
+        }
+
+        .ticket-fade-up {
+          animation: ticketFadeUp 700ms ease-out both;
+        }
+
+        .ticket-float {
+          animation: ticketFloat 8s ease-in-out infinite;
+        }
+
+        .ticket-gradient-line {
+          animation: ticketGradientStream 8.5s ease-in-out infinite;
+        }
+      `}</style>
+
+      <section className="relative overflow-hidden rounded-[38px] border border-white/60 bg-[linear-gradient(135deg,#faf5ff_0%,#f3e8ff_40%,#eef2ff_100%)] px-6 py-8 shadow-[0_30px_95px_rgba(124,58,237,0.14)] md:px-8 xl:px-10">
+        <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-violet-300/30 blur-3xl" />
+        <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-purple-300/25 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-10 left-1/3 h-56 w-56 rounded-full bg-fuchsia-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute right-24 bottom-0 h-44 w-44 rounded-full bg-indigo-300/20 blur-3xl" />
 
         <div className="relative z-10 grid gap-8 xl:grid-cols-[1.1fr_0.9fr] xl:items-end">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white/80 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-violet-700 shadow-sm backdrop-blur">
-              <Ticket className="h-3.5 w-3.5" />
-              Premium Support Center
+          <div className="ticket-fade-up space-y-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200/80 bg-white/80 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-violet-700 shadow-sm backdrop-blur-xl">
+                <Ticket className="h-3.5 w-3.5" />
+                 Support Center
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-violet-700 shadow-[0_14px_34px_rgba(124,58,237,0.10)] backdrop-blur-xl">
+                SMART SUPPORT
+              </div>
             </div>
 
             <div className="space-y-3">
-              <p className="text-sm font-bold text-violet-600">
+              <p className="text-sm font-bold tracking-[0.08em] text-violet-600">
                 Fast help for every campus issue
               </p>
-              <h1 className="max-w-3xl text-4xl font-black tracking-[-0.05em] text-slate-950 md:text-5xl">
+              <h1 className="max-w-3xl text-4xl font-black tracking-[-0.06em] text-slate-950 md:text-5xl xl:text-6xl">
                 Submit smarter requests,
-                <span className="block bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_52%,#8B5CF6_100%)] bg-clip-text text-transparent">
+                <span className="block bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_42%,#8B5CF6_72%,#A855F7_100%)] bg-clip-text tracking-[-0.05em] text-transparent">
                   track every update beautifully
                 </span>
               </h1>
@@ -269,7 +306,7 @@ export default function UserTickets() {
                 return (
                   <div
                     key={stat.label}
-                    className="rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_18px_40px_rgba(109,40,217,0.08)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-[0_24px_50px_rgba(109,40,217,0.14)]"
+                    className="rounded-3xl border border-white/50 bg-white/70 p-5 shadow-[0_20px_60px_rgba(124,58,237,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(124,58,237,0.18)]"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="rounded-2xl bg-[linear-gradient(135deg,#ede9fe_0%,#f5f3ff_100%)] p-3 text-violet-700">
@@ -292,10 +329,14 @@ export default function UserTickets() {
                 );
               })}
             </div>
+
+            <div className="h-[6px] overflow-hidden rounded-full bg-white/60 shadow-inner">
+              <div className="ticket-gradient-line h-full w-[55%] rounded-full bg-[linear-gradient(90deg,#6D28D9_0%,#7C3AED_35%,#8B5CF6_70%,#A855F7_100%)] shadow-[0_0_30px_rgba(124,58,237,0.35)]" />
+            </div>
           </div>
 
-          <div className="rounded-[34px] border border-white/80 bg-white/75 p-5 shadow-[0_26px_70px_rgba(109,40,217,0.12)] backdrop-blur">
-            <div className="rounded-[30px] bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_55%,#8B5CF6_100%)] p-6 text-white shadow-[0_20px_50px_rgba(109,40,217,0.28)]">
+          <div className="ticket-float ticket-fade-up rounded-[36px] border border-white/60 bg-white/70 p-5 shadow-[0_28px_80px_rgba(124,58,237,0.14)] backdrop-blur-2xl" style={{ animationDelay: "120ms" }}>
+            <div className="rounded-[30px] bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_42%,#8B5CF6_74%,#A855F7_100%)] p-6 text-white shadow-[0_22px_56px_rgba(124,58,237,0.28)]">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.22em] text-violet-100">
@@ -343,7 +384,7 @@ export default function UserTickets() {
       </section>
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-12 xl:items-start">
-        <div className="xl:col-span-4 rounded-[32px] border border-violet-100 bg-white shadow-[0_18px_50px_rgba(109,40,217,0.08)] overflow-hidden sticky top-6">
+        <div className="xl:col-span-4 overflow-hidden rounded-[32px] border border-white/60 bg-white/72 shadow-[0_20px_60px_rgba(124,58,237,0.10)] backdrop-blur-xl sticky top-6">
           <div className="border-b border-violet-100 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_100%)] px-6 py-6">
             <h2 className="flex items-center gap-2 text-xl font-black text-slate-900">
               <PlusCircle className="h-5 w-5 text-violet-600" />
@@ -360,7 +401,7 @@ export default function UserTickets() {
                 Subject
               </label>
               <input
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-700 outline-none transition-all focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-100"
+                className="w-full rounded-[24px] border border-white/60 bg-white/75 px-4 py-3.5 text-sm font-medium text-slate-700 outline-none transition-all duration-300 focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_18px_34px_rgba(124,58,237,0.12)]"
                 required
                 name="title"
                 placeholder="Brief summary of the issue"
@@ -374,7 +415,7 @@ export default function UserTickets() {
                 Details
               </label>
               <textarea
-                className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium leading-relaxed text-slate-700 outline-none transition-all focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-100"
+                className="w-full resize-none rounded-[24px] border border-white/60 bg-white/75 px-4 py-3.5 text-sm font-medium leading-relaxed text-slate-700 outline-none transition-all duration-300 focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_18px_34px_rgba(124,58,237,0.12)]"
                 required
                 name="description"
                 placeholder="Describe the problem in detail..."
@@ -389,7 +430,7 @@ export default function UserTickets() {
                 Contact Details
               </label>
               <input
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-700 outline-none transition-all focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-100"
+                className="w-full rounded-[24px] border border-white/60 bg-white/75 px-4 py-3.5 text-sm font-medium text-slate-700 outline-none transition-all duration-300 focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_18px_34px_rgba(124,58,237,0.12)]"
                 required
                 name="contactDetails"
                 placeholder="Email or phone number for follow-up"
@@ -406,7 +447,7 @@ export default function UserTickets() {
                 <div className="relative">
                   <Layers className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <select
-                    className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all cursor-pointer focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-100"
+                    className="w-full appearance-none rounded-[24px] border border-white/60 bg-white/75 py-3 pl-9 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all duration-300 cursor-pointer focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_18px_34px_rgba(124,58,237,0.12)]"
                     name="category"
                     required
                     value={form.category}
@@ -432,7 +473,7 @@ export default function UserTickets() {
                 <div className="relative">
                   <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <select
-                    className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all cursor-pointer focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-100"
+                    className="w-full appearance-none rounded-[24px] border border-white/60 bg-white/75 py-3 pl-9 pr-4 text-sm font-semibold text-slate-700 outline-none transition-all duration-300 cursor-pointer focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_18px_34px_rgba(124,58,237,0.12)]"
                     name="priority"
                     required
                     value={form.priority}
@@ -454,7 +495,7 @@ export default function UserTickets() {
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">
                 Attachments (Max 3)
               </label>
-              <label className="flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-[26px] border-2 border-dashed border-violet-200 bg-[linear-gradient(135deg,#faf5ff_0%,#ffffff_100%)] transition-all hover:border-violet-300 hover:bg-violet-50/50">
+              <label className="flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-[26px] border-2 border-dashed border-violet-200 bg-[linear-gradient(135deg,#faf5ff_0%,#ffffff_100%)] transition-all duration-300 hover:border-violet-300 hover:bg-violet-50/50 hover:shadow-[0_16px_34px_rgba(124,58,237,0.10)]">
                 <div className="flex flex-col items-center justify-center pt-2">
                   <div className="rounded-2xl bg-white p-3 shadow-sm">
                     <ImageIcon className="h-6 w-6 text-violet-500" />
@@ -482,7 +523,7 @@ export default function UserTickets() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_55%,#8B5CF6_100%)] py-3.5 font-bold text-white shadow-[0_18px_40px_rgba(109,40,217,0.28)] transition-all hover:-translate-y-0.5 hover:shadow-[0_24px_55px_rgba(109,40,217,0.34)] active:scale-[0.99] disabled:bg-slate-300 disabled:shadow-none"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_45%,#8B5CF6_75%,#A855F7_100%)] py-3.5 font-bold text-white shadow-[0_18px_40px_rgba(124,58,237,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_24px_55px_rgba(124,58,237,0.34)] active:scale-[0.99] disabled:bg-slate-300 disabled:shadow-none"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -495,7 +536,7 @@ export default function UserTickets() {
           </form>
         </div>
 
-        <div className="xl:col-span-8 overflow-hidden rounded-[32px] border border-violet-100 bg-white shadow-[0_18px_50px_rgba(109,40,217,0.08)] h-fit">
+        <div className="xl:col-span-8 overflow-hidden rounded-[32px] border border-white/60 bg-white/72 shadow-[0_20px_60px_rgba(124,58,237,0.10)] backdrop-blur-xl h-fit">
           <div className="flex flex-col gap-4 border-b border-violet-100 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_100%)] p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="flex items-center gap-2 text-xl font-black text-slate-900">
@@ -538,7 +579,7 @@ export default function UserTickets() {
                 {sortedTickets.map((t) => (
                   <article
                     key={t.id}
-                    className="group rounded-[28px] border border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_100%)] p-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-[0_20px_45px_rgba(109,40,217,0.12)]"
+                    className="group rounded-[28px] border border-white/60 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_100%)] p-5 shadow-[0_14px_40px_rgba(124,58,237,0.08)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.005] hover:border-violet-200 hover:shadow-[0_24px_55px_rgba(124,58,237,0.14)]"
                   >
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0 flex-1">
@@ -564,7 +605,7 @@ export default function UserTickets() {
                         </div>
 
                         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <div className="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 backdrop-blur">
                             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                               Status
                             </p>
@@ -577,7 +618,7 @@ export default function UserTickets() {
                             </div>
                           </div>
 
-                          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <div className="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 backdrop-blur">
                             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                               Created
                             </p>
@@ -587,7 +628,7 @@ export default function UserTickets() {
                             </div>
                           </div>
 
-                          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <div className="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 backdrop-blur">
                             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                               Evidence
                             </p>
@@ -619,7 +660,7 @@ export default function UserTickets() {
                             setCommentTicketId(t.id);
                             setCommentOpen(true);
                           }}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-violet-100 bg-white px-4 py-3 text-sm font-bold text-violet-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-200 hover:bg-violet-50 hover:shadow-[0_16px_34px_rgba(109,40,217,0.16)] active:scale-[0.99] whitespace-nowrap"
+                          className="inline-flex items-center gap-2 rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-sm font-bold text-violet-700 shadow-[0_12px_30px_rgba(124,58,237,0.10)] backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.02] hover:border-violet-200 hover:bg-violet-50 hover:shadow-[0_18px_40px_rgba(124,58,237,0.18)] active:scale-[0.99] whitespace-nowrap"
                         >
                           <MessageSquare className="h-4 w-4" />
                           View Log

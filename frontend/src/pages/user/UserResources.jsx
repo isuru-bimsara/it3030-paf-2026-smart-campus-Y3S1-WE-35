@@ -87,6 +87,17 @@ export default function UserResources() {
           100% { transform: scale(1.02); }
         }
 
+        @keyframes resourceFadeUp {
+          0% { opacity: 0; transform: translate3d(0, 16px, 0); }
+          100% { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+
+        @keyframes gradientStream {
+          0% { transform: translateX(-18%); opacity: 0.55; }
+          50% { transform: translateX(18%); opacity: 1; }
+          100% { transform: translateX(-18%); opacity: 0.55; }
+        }
+
         .resource-hero-float {
           animation: resourceFloat 8s ease-in-out infinite;
         }
@@ -95,26 +106,41 @@ export default function UserResources() {
           animation: resourcePan 18s ease-in-out infinite;
           transform-origin: center center;
         }
+
+        .resource-fade-up {
+          animation: resourceFadeUp 700ms ease-out both;
+        }
+
+        .resource-gradient-line {
+          animation: gradientStream 9s ease-in-out infinite;
+        }
       `}</style>
 
-      <section className="relative overflow-hidden rounded-[36px] border border-violet-100 bg-[linear-gradient(135deg,#ffffff_0%,#faf5ff_44%,#f5f3ff_100%)] px-6 py-8 shadow-[0_24px_70px_rgba(109,40,217,0.10)] md:px-8 xl:px-10">
-        <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-violet-300/20 blur-3xl" />
-        <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-purple-300/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[38px] border border-white/60 bg-[linear-gradient(135deg,#faf5ff_0%,#f3e8ff_40%,#eef2ff_100%)] px-6 py-8 shadow-[0_30px_95px_rgba(124,58,237,0.14)] md:px-8 xl:px-10">
+        <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-violet-300/30 blur-3xl" />
+        <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-purple-300/25 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-10 left-1/3 h-56 w-56 rounded-full bg-fuchsia-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute right-20 bottom-0 h-48 w-48 rounded-full bg-indigo-300/20 blur-3xl" />
 
         <div className="relative z-10 grid gap-8 xl:grid-cols-[1.08fr_0.92fr] xl:items-center">
-          <div className="space-y-7">
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white/80 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-violet-700 shadow-sm backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5" />
-              Premium Resource Gallery
+          <div className="resource-fade-up space-y-7">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200/80 bg-white/80 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-violet-700 shadow-sm backdrop-blur-xl">
+                <Sparkles className="h-3.5 w-3.5" />
+                Premium Resource Gallery
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-violet-700 shadow-[0_14px_34px_rgba(124,58,237,0.10)] backdrop-blur-xl">
+                SMART BOOKING
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <p className="text-sm font-bold text-violet-600">
+            <div className="space-y-4">
+              <p className="text-sm font-bold tracking-[0.08em] text-violet-600">
                 Book premium spaces across campus
               </p>
-              <h1 className="max-w-3xl text-4xl font-black tracking-[-0.05em] text-slate-950 md:text-5xl">
+              <h1 className="max-w-3xl text-4xl font-black tracking-[-0.06em] text-slate-950 md:text-5xl xl:text-6xl">
                 Discover the right room,
-                <span className="block bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_52%,#8B5CF6_100%)] bg-clip-text text-transparent">
+                <span className="block bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_42%,#8B5CF6_72%,#A855F7_100%)] bg-clip-text tracking-[-0.05em] text-transparent">
                   beautifully presented
                 </span>
               </h1>
@@ -126,7 +152,7 @@ export default function UserResources() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_18px_40px_rgba(109,40,217,0.08)] backdrop-blur">
+              <div className="rounded-3xl border border-white/50 bg-white/70 p-5 shadow-[0_20px_60px_rgba(124,58,237,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(124,58,237,0.18)]">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
                   Available
                 </p>
@@ -138,7 +164,7 @@ export default function UserResources() {
                 </p>
               </div>
 
-              <div className="rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_18px_40px_rgba(109,40,217,0.08)] backdrop-blur">
+              <div className="rounded-3xl border border-white/50 bg-white/70 p-5 shadow-[0_20px_60px_rgba(124,58,237,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(124,58,237,0.18)]">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
                   Showing
                 </p>
@@ -150,7 +176,7 @@ export default function UserResources() {
                 </p>
               </div>
 
-              <div className="rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_18px_40px_rgba(109,40,217,0.08)] backdrop-blur">
+              <div className="rounded-3xl border border-white/50 bg-white/70 p-5 shadow-[0_20px_60px_rgba(124,58,237,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(124,58,237,0.18)]">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
                   Top Type
                 </p>
@@ -163,6 +189,10 @@ export default function UserResources() {
               </div>
             </div>
 
+            <div className="h-[6px] overflow-hidden rounded-full bg-white/60 shadow-inner">
+              <div className="resource-gradient-line h-full w-[55%] rounded-full bg-[linear-gradient(90deg,#6D28D9_0%,#7C3AED_35%,#8B5CF6_70%,#A855F7_100%)] shadow-[0_0_30px_rgba(124,58,237,0.35)]" />
+            </div>
+
             <div className="relative max-w-xl">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
@@ -170,13 +200,13 @@ export default function UserResources() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search by name, type, location, or details..."
-                className="w-full rounded-2xl border border-violet-100 bg-white/90 py-3.5 pl-12 pr-4 text-sm font-medium text-slate-700 shadow-[0_12px_30px_rgba(109,40,217,0.06)] outline-none transition-all placeholder:text-slate-400 focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
+                className="w-full rounded-[24px] border border-white/60 bg-white/75 py-4 pl-12 pr-4 text-sm font-medium text-slate-700 shadow-[0_18px_40px_rgba(124,58,237,0.10)] outline-none transition-all duration-300 placeholder:text-slate-400 focus:border-violet-300 focus:ring-4 focus:ring-violet-200/80 focus:shadow-[0_22px_50px_rgba(124,58,237,0.18)] backdrop-blur-xl"
               />
             </div>
           </div>
 
-          <div className="resource-hero-float mx-auto w-full max-w-[540px]">
-            <div className="rounded-[34px] border border-white/80 bg-white/75 p-4 shadow-[0_28px_70px_rgba(109,40,217,0.12)] backdrop-blur-xl">
+          <div className="resource-hero-float resource-fade-up mx-auto w-full max-w-[540px]" style={{ animationDelay: "120ms" }}>
+            <div className="rounded-[36px] border border-white/60 bg-white/70 p-4 shadow-[0_28px_80px_rgba(124,58,237,0.14)] backdrop-blur-2xl">
               <div className="relative h-[380px] overflow-hidden rounded-[28px] md:h-[420px]">
                 <GradientPlaceholder label={heroResource?.name || "Campus Resource"} />
                 <img
@@ -261,7 +291,7 @@ export default function UserResources() {
                       {heroResource ? (
                         <button
                           onClick={() => navigate(`/user/book/${heroResource.id}`)}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-violet-700 shadow-[0_12px_30px_rgba(15,23,42,0.16)] transition-all hover:-translate-y-0.5 hover:bg-violet-50"
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-violet-700 shadow-[0_16px_34px_rgba(15,23,42,0.16)] transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.02] hover:bg-violet-50 hover:shadow-[0_22px_44px_rgba(124,58,237,0.24)]"
                         >
                           Book Featured
                           <ArrowRight className="h-4 w-4" />
@@ -294,7 +324,7 @@ export default function UserResources() {
           {filteredResources.map((resource) => (
             <article
               key={resource.id}
-              className="group overflow-hidden rounded-[30px] border border-violet-100 bg-white shadow-[0_16px_40px_rgba(109,40,217,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-[0_24px_55px_rgba(109,40,217,0.14)]"
+              className="group overflow-hidden rounded-[30px] border border-white/60 bg-white/72 shadow-[0_20px_60px_rgba(124,58,237,0.10)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:scale-[1.01] hover:border-violet-200 hover:shadow-[0_28px_70px_rgba(124,58,237,0.18)]"
             >
               <div className="relative h-[250px] overflow-hidden">
                 <GradientPlaceholder label={resource.name} />
@@ -369,7 +399,7 @@ export default function UserResources() {
 
                 <button
                   onClick={() => navigate(`/user/book/${resource.id}`)}
-                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_55%,#8B5CF6_100%)] px-4 py-3.5 text-sm font-bold text-white shadow-[0_18px_40px_rgba(109,40,217,0.24)] transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_50px_rgba(109,40,217,0.32)] active:scale-[0.99]"
+                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#6D28D9_0%,#7C3AED_45%,#8B5CF6_75%,#A855F7_100%)] px-4 py-3.5 text-sm font-bold text-white shadow-[0_18px_40px_rgba(124,58,237,0.24)] transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_24px_55px_rgba(124,58,237,0.32)] active:scale-[0.99]"
                 >
                   Book Now
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
