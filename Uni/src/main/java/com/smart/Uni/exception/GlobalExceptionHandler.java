@@ -1,63 +1,61 @@
 package com.smart.Uni.exception;
 
 import com.smart.Uni.dto.response.ApiResponse;
-import jakarta.servlet.ServletException;
-import jakarta.validation.ConstraintViolationException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.multipart.support.MissingServletRequestPartException;
-
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(
-            MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new LinkedHashMap<>();
-
-        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
-            errors.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
-        }
-
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.error("Validation failed", errors));
-    }
-
-    @ExceptionHandler({
-            ConstraintViolationException.class,
-            MissingServletRequestParameterException.class,
-            MissingServletRequestPartException.class,
-            IllegalArgumentException.class
-    })
-    public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception ex) {
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.error(ex.getMessage()));
-    }
-
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleResourceNotFound(ResourceNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+    @ExceptionHandler(BookingConflictException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBookingConflict(BookingConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error("Database constraint violation while saving the request."));
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
-    @ExceptionHandler({ServletException.class, RuntimeException.class})
-    public ResponseEntity<ApiResponse<Void>> handleRuntimeException(Exception ex) {
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidation(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String msg = error.getDefaultMessage();
+            errors.put(fieldName, msg);
+        });
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Map<String, String>>builder()
+                        .success(false)
+                        .message("Validation failed")
+                        .data(errors)
+                        .build());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Unexpected server error. Please try again."));
+                .body(ApiResponse.error("An unexpected error occurred: " + ex.getMessage()));
     }
 }

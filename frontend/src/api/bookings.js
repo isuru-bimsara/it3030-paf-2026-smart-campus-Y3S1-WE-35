@@ -6,6 +6,8 @@ export const bookingsApi = {
   getAll: () => api.get('/bookings'),
   getById: (id) => api.get(`/bookings/${id}`),
   approve: (id) => api.patch(`/bookings/${id}/approve`),
-  reject: (id) => api.patch(`/bookings/${id}/reject`),
+  reject: (id, reason) => api.patch(`/bookings/${id}/reject`, { reason }),
   cancel: (id) => api.patch(`/bookings/${id}/cancel`),
+  update: (id, data) => api.put(`/bookings/${id}`, data),
+  getByResourceAndDate: (resourceId, date) => api.get(`/bookings/resource/${resourceId}/date/${date}`),
 }

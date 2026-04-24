@@ -31,6 +31,14 @@ public class BookingController {
                 ApiResponse.success("Booking created", bookingService.createBooking(request, userDetails.getUsername())));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<BookingResponse>> updateBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody BookingRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success("Booking updated", bookingService.updateBooking(id, request, userDetails.getUsername())));
+    }
+
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<BookingResponse>>> getMyBookings(
             @AuthenticationPrincipal UserDetails userDetails) {

@@ -36,7 +36,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(userService.login(request)));
     }
 
-      @DeleteMapping("/me")
+    @DeleteMapping("/me")
     public ResponseEntity<ApiResponse<String>> deleteCurrentUser(
             @AuthenticationPrincipal UserDetails userDetails) {
         userService.deleteCurrentUser(userDetails.getUsername());

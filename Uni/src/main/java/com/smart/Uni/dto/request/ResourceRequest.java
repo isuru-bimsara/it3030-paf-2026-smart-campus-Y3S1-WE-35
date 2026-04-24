@@ -1,3 +1,26 @@
+//package com.smart.Uni.dto.request;
+//
+//import com.smart.Uni.enums.ResourceStatus;
+//import com.smart.Uni.enums.ResourceType;
+//import jakarta.validation.constraints.Min;
+//import jakarta.validation.constraints.NotBlank;
+//import jakarta.validation.constraints.NotNull;
+//import lombok.Data;
+//
+//@Data
+//public class ResourceRequest {
+//    @NotBlank(message = "Name is required")
+//    private String name;
+//    private String description;
+//    @NotNull(message = "Type is required")
+//    private ResourceType type;
+//    private String location;
+//    @Min(value = 1, message = "Capacity must be at least 1")
+//    private Integer capacity;
+//    private ResourceStatus status;
+//}
+
+
 package com.smart.Uni.dto.request;
 
 import com.smart.Uni.enums.ResourceStatus;
@@ -5,33 +28,26 @@ import com.smart.Uni.enums.ResourceType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class ResourceRequest {
 
-    @NotBlank(message = "Resource name is required")
+    @NotBlank(message = "Name is required")
     private String name;
 
     private String description;
 
-    @NotNull(message = "Resource type is required")
+    @NotNull(message = "Type is required")
     private ResourceType type;
 
     private String location;
 
     @NotNull(message = "Capacity is required")
-    @Min(value = 0, message = "Capacity cannot be negative")
+    @Min(value = 1, message = "Capacity must be at least 1")
     private Integer capacity;
 
-    @NotNull(message = "Resource status is required")
     private ResourceStatus status;
 
-    private String imageUrl;
+    private String imageUrl; // optional image
 }

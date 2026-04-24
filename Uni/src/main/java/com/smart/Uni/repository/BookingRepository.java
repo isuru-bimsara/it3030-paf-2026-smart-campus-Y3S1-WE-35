@@ -24,6 +24,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime
     );
+
+    @Query("SELECT b FROM Booking b WHERE b.resource.id = :resourceId " +
+            "AND b.id <> :bookingId " +
+            "AND b.status NOT IN ('CANCELLED','REJECTED') " +
+            "AND ((b.startTime < :endTime) AND (b.endTime > :startTime))")
+    List<Booking> findConflictingBookingsExcludingId(
+            @Param("resourceId") Long resourceId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime,
+            @Param("bookingId") Long bookingId
+    );
     long countByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 
     List<Booking> findByResourceIdAndStartTimeBetween(Long resourceId, LocalDateTime start, LocalDateTime end);
