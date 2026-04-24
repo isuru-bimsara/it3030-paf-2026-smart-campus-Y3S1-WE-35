@@ -11,12 +11,14 @@ import com.smart.Uni.exception.ResourceNotFoundException;
 import com.smart.Uni.repository.ResourceRepository;
 import com.smart.Uni.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ResourceService {
     private final ResourceRepository resourceRepository;
     private final NotificationService notificationService;
@@ -78,7 +80,13 @@ public class ResourceService {
                 .imageUrl(request.getImageUrl())
                 .build();
         Resource saved = resourceRepository.save(r);
-        notificationService.notifyResourceCreated(saved, findUser(actorEmail));
+
+        try {
+            notificationService.notifyResourceCreated(saved, findUser(actorEmail));
+        } catch (Exception ex) {
+            log.warn("Resource {} saved but resource-created notification failed", saved.getId(), ex);
+        }
+
         return toResponse(saved);
     }
 
@@ -93,7 +101,13 @@ public class ResourceService {
         if(request.getStatus() != null) r.setStatus(request.getStatus());
         if(request.getImageUrl() != null) r.setImageUrl(request.getImageUrl());
         Resource saved = resourceRepository.save(r);
-        notificationService.notifyResourceUpdated(saved, findUser(actorEmail));
+
+        try {
+            notificationService.notifyResourceUpdated(saved, findUser(actorEmail));
+        } catch (Exception ex) {
+            log.warn("Resource {} updated but resource-updated notification failed", saved.getId(), ex);
+        }
+
         return toResponse(saved);
     }
 
@@ -101,7 +115,12 @@ public class ResourceService {
         Resource r = resourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + id));
         resourceRepository.deleteById(id);
-        notificationService.notifyResourceDeleted(id, r.getName(), findUser(actorEmail));
+
+        try {
+            notificationService.notifyResourceDeleted(id, r.getName(), findUser(actorEmail));
+        } catch (Exception ex) {
+            log.warn("Resource {} deleted but resource-deleted notification failed", id, ex);
+        }
     }
 
     private ResourceResponse toResponse(Resource r) {
