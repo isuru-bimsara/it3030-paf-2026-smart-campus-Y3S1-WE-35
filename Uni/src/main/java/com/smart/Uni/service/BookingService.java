@@ -1,6 +1,3 @@
-
-
-
 package com.smart.Uni.service;
 
 import com.smart.Uni.dto.request.BookingRequest;
@@ -214,5 +211,25 @@ public class BookingService {
                 .build();
     }
 
+    @Transactional
+    public void deleteBooking(Long id, String username) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
+
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Only owner can delete
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("You can only delete your own bookings");
+        }
+
+        // If manager approved, user cannot delete
+        if (booking.getStatus() == BookingStatus.APPROVED) {
+            throw new RuntimeException("Cannot delete an approved booking. Please contact manager to cancel.");
+        }
+
+        bookingRepository.delete(booking);
+    }
 
 }
