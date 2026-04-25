@@ -99,4 +99,12 @@ public class BookingController {
             @PathVariable LocalDate date) {
         return ResponseEntity.ok(ApiResponse.success(bookingService.getBookingsByResourceAndDate(resourceId, date)));
     }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteBooking(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        bookingService.deleteBooking(id, userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Booking deleted successfully", null));
+    }
 }
