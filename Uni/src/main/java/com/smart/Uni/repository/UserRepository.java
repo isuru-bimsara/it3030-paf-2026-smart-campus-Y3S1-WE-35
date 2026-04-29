@@ -1,22 +1,62 @@
+// package com.smart.Uni.repository;
+
+// import com.smart.Uni.entity.User;
+// import com.smart.Uni.enums.UserRole;
+// import org.springframework.data.jpa.repository.JpaRepository;
+// import org.springframework.stereotype.Repository;
+
+// import java.util.List;
+// import java.util.Optional;
+
+// @Repository
+// public interface UserRepository extends JpaRepository<User, Long> {
+//     Optional<User> findByEmail(String email);
+//     Optional<User> findByProviderAndProviderId(String provider, String providerId);
+//     boolean existsByEmail(String email);
+//     long countByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
+//     List<User> findByRole(UserRole role);
+//     long countByRole(UserRole role);
+
+//     Optional<User> findByEmailAndDeletedFalse(String email);
+//     boolean existsByEmailAndDeletedFalse(String email);
+//     List<User> findByDeletedFalse();
+// }
 package com.smart.Uni.repository;
 
 import com.smart.Uni.entity.User;
 import com.smart.Uni.enums.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-@Repository
 public interface UserRepository extends JpaRepository<User, Long> {
+
     Optional<User> findByEmail(String email);
-    Optional<User> findByProviderAndProviderId(String provider, String providerId);
-    boolean existsByEmail(String email);
-    long countByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
-    List<User> findByRole(UserRole role);
+
     Optional<User> findByEmailAndDeletedFalse(String email);
-    boolean existsByEmailAndDeletedFalse(String email);
+
     List<User> findByDeletedFalse();
 
+    boolean existsByEmailAndDeletedFalse(String email);
+
+    long countByDeletedFalse();
+
+    long countByRoleAndDeletedFalse(UserRole role);
+
+    long countByRole(UserRole role);
+
+    List<User> findByRole(UserRole role); // ✅ FIX ADDED
+
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    @Query(value = """
+                SELECT role, COUNT(*)
+                FROM users
+                WHERE deleted = false
+                GROUP BY role
+            """, nativeQuery = true)
+    List<Object[]> countUsersByRole();
 }

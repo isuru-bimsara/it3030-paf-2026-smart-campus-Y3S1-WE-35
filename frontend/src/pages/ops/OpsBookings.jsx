@@ -747,17 +747,10 @@ export default function OpsBookings() {
                   onClick={() => handleAction(selectedBooking.id, "cancel")}
                   className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all"
                 >
-                  TERMINATE RESERVATION
+                  CLOSE THE REQUEST
                 </button>
               )}
-              {["REJECTED", "CANCELLED"].includes(selectedBooking.status) && (
-                <button 
-                  onClick={() => setSelectedBooking(null)}
-                  className="w-full py-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-sm hover:bg-indigo-100 transition-all"
-                >
-                  CLOSE PREVIEW
-                </button>
-              )}
+         
             </div>
           </div>
         </div>

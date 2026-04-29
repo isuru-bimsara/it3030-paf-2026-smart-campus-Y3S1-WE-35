@@ -1,3 +1,23 @@
+
+// package com.smart.Uni.enums;
+
+// public enum NotificationType {
+//     BOOKING_PENDING,
+//     BOOKING_APPROVED,
+//     BOOKING_REJECTED,
+//     BOOKING_CANCELLED,
+//     TICKET_CREATED,
+//     TICKET_UPDATED,
+//     TICKET_ASSIGNED,
+//     TICKET_STATUS_CHANGED,
+//     COMMENT_ADDED,
+//     RESOURCE_CREATED,
+//     RESOURCE_UPDATED,
+//     RESOURCE_DELETED,
+//     ROLE_CHANGED,
+//     GENERAL
+// }
+
 package com.smart.Uni.enums;
 
 public enum NotificationType {
@@ -5,14 +25,23 @@ public enum NotificationType {
     BOOKING_APPROVED,
     BOOKING_REJECTED,
     BOOKING_CANCELLED,
+
     TICKET_CREATED,
     TICKET_UPDATED,
     TICKET_ASSIGNED,
     TICKET_STATUS_CHANGED,
+    TICKET_IN_PROGRESS,
+    TICKET_RESOLVED,
+    TICKET_CLOSED,
+    TICKET_REJECTED,
+    TICKET_RESOLUTION_ACKNOWLEDGED,
+
     COMMENT_ADDED,
+
     RESOURCE_CREATED,
     RESOURCE_UPDATED,
     RESOURCE_DELETED,
+
     ROLE_CHANGED,
     GENERAL
 }

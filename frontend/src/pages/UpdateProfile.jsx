@@ -9,10 +9,14 @@ import {
   AlertCircle,
   CheckCircle2,
   ShieldCheck,
+  Trash2,
+  Lock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 export default function UpdateProfile() {
-  const { user: authUser, updateUser } = useAuth(); // ✅ global auth state
+  const { user: authUser, updateUser } = useAuth();
 
   const [user, setUser] = useState(null);
   const [name, setName] = useState("");
@@ -20,8 +24,24 @@ export default function UpdateProfile() {
   const [imagePreview, setImagePreview] = useState(null);
 
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+
+  // Password change states
+  const [passwords, setPasswords] = useState({
+    current: "",
+    new: "",
+    confirm: "",
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState(null);
+  const [passwordError, setPasswordError] = useState(null);
 
   const buildImageUrl = (picture) => {
     if (!picture) return null;
@@ -46,7 +66,6 @@ export default function UpdateProfile() {
     fetchUser();
   }, []);
 
-  // Optional: keep page synced if auth context user changes elsewhere
   useEffect(() => {
     if (authUser) {
       setUser(authUser);
@@ -83,14 +102,10 @@ export default function UpdateProfile() {
       });
 
       const updatedUser = res.data.data;
-
-      // local page state
       setUser(updatedUser);
       setName(updatedUser?.name || "");
       setImagePreview(buildImageUrl(updatedUser?.picture));
       setImage(null);
-
-      // ✅ global state update (AdminLayout updates instantly)
       updateUser(updatedUser);
 
       setMessage("Profile updated successfully!");
@@ -100,6 +115,58 @@ export default function UpdateProfile() {
       setError(err.response?.data?.message || "Failed to update profile.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteProfile = async () => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to permanently delete your profile? This action cannot be undone.",
+    );
+    if (!confirmDelete) return;
+
+    setDeleting(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      await api.delete("/auth/me");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      updateUser(null);
+      window.location.href = "/login";
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || "Failed to delete profile.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (passwords.new !== passwords.confirm) {
+      setError("New passwords do not match.");
+      return;
+    }
+
+    setPasswordLoading(true);
+    setPasswordMessage(null);
+    setPasswordError(null);
+
+    try {
+      await api.put("/users/change-password", {
+        currentPassword: passwords.current,
+        newPassword: passwords.new,
+      });
+
+      setPasswordMessage("Password updated successfully!");
+      setPasswords({ current: "", new: "", confirm: "" });
+      setTimeout(() => setPasswordMessage(null), 3000);
+    } catch (err) {
+      console.error(err);
+      setPasswordError(err.response?.data?.message || "Failed to update password.");
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -157,7 +224,9 @@ export default function UpdateProfile() {
 
                 <div
                   className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm cursor-pointer"
-                  onClick={() => document.getElementById("profile-upload").click()}
+                  onClick={() =>
+                    document.getElementById("profile-upload").click()
+                  }
                 >
                   <div className="bg-white/20 p-2 rounded-full">
                     <Camera className="w-6 h-6 text-white" />
@@ -254,21 +323,204 @@ export default function UpdateProfile() {
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/25 disabled:bg-slate-300 disabled:shadow-none active:scale-95"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Save className="w-5 h-5" />
-              )}
-              {loading ? "Saving changes..." : "Save Changes"}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleDeleteProfile}
+                disabled={deleting || loading}
+                className="inline-flex items-center gap-2 px-5 py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-rose-600/25 disabled:bg-slate-300 disabled:shadow-none active:scale-95"
+              >
+                {deleting ? (
+                  <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="w-5 h-5" />
+                )}
+                {deleting ? "Deleting..." : "Delete Profile"}
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading || deleting}
+                className="inline-flex items-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/25 disabled:bg-slate-300 disabled:shadow-none active:scale-95"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Save className="w-5 h-5" />
+                )}
+                {loading ? "Saving changes..." : "Save Changes"}
+              </button>
+            </div>
           </div>
         </form>
       </div>
+
+      {/* Security Section - Only for local providers */}
+      {user?.provider !== "google" && (
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+          <div className="p-8 border-b border-slate-50 bg-slate-50/30">
+            <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 rounded-xl">
+                <Lock className="w-5 h-5 text-indigo-600" />
+              </div>
+              Security & Password
+            </h3>
+            <p className="text-slate-500 mt-1 text-sm font-medium">
+              Update your password to keep your account secure.
+            </p>
+          </div>
+
+          <form onSubmit={handlePasswordSubmit} className="p-8 space-y-6">
+            {passwordMessage && (
+              <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 p-4 rounded-2xl flex items-center gap-3 shadow-sm mb-2">
+                <div className="bg-emerald-100 p-1.5 rounded-full">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                </div>
+                <p className="font-bold text-sm">{passwordMessage}</p>
+              </div>
+            )}
+
+            {passwordError && (
+              <div className="bg-rose-50 border border-rose-100 text-rose-800 p-4 rounded-2xl flex items-center gap-3 shadow-sm mb-2">
+                <div className="bg-rose-100 p-1.5 rounded-full">
+                  <AlertCircle className="w-5 h-5 text-rose-600" />
+                </div>
+                <p className="font-bold text-sm">{passwordError}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+              <div className="space-y-2">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest pl-1">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <input
+                    type={showPasswords.current ? "text" : "password"}
+                    required
+                    value={passwords.current}
+                    onChange={(e) =>
+                      setPasswords({ ...passwords, current: e.target.value })
+                    }
+                    className="block w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 rounded-2xl focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 outline-none transition-all text-sm font-bold shadow-sm"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPasswords({
+                        ...showPasswords,
+                        current: !showPasswords.current,
+                      })
+                    }
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600 transition-colors"
+                  >
+                    {showPasswords.current ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest pl-1">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <input
+                      type={showPasswords.new ? "text" : "password"}
+                      required
+                      value={passwords.new}
+                      onChange={(e) =>
+                        setPasswords({ ...passwords, new: e.target.value })
+                      }
+                      className="block w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 rounded-2xl focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 outline-none transition-all text-sm font-bold shadow-sm"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowPasswords({
+                          ...showPasswords,
+                          new: !showPasswords.new,
+                        })
+                      }
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600 transition-colors"
+                    >
+                      {showPasswords.new ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest pl-1">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <input
+                      type={showPasswords.confirm ? "text" : "password"}
+                      required
+                      value={passwords.confirm}
+                      onChange={(e) =>
+                        setPasswords({ ...passwords, confirm: e.target.value })
+                      }
+                      className="block w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 rounded-2xl focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 outline-none transition-all text-sm font-bold shadow-sm"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowPasswords({
+                          ...showPasswords,
+                          confirm: !showPasswords.confirm,
+                        })
+                      }
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600 transition-colors"
+                    >
+                      {showPasswords.confirm ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 flex justify-end">
+              <button
+                type="submit"
+                disabled={passwordLoading}
+                className="inline-flex items-center gap-2 px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/25 disabled:bg-slate-300 disabled:shadow-none active:scale-95"
+              >
+                {passwordLoading ? (
+                  <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Save className="w-5 h-5" />
+                )}
+                {passwordLoading ? "Updating..." : "Update Password"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

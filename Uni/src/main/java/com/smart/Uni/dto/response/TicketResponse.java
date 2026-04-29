@@ -1,0 +1,88 @@
+// package com.smart.Uni.dto.response;
+
+// import com.smart.Uni.enums.TicketCategory;
+// import com.smart.Uni.enums.TicketPriority;
+// import com.smart.Uni.enums.TicketStatus;
+// import lombok.Builder;
+// import lombok.Data;
+// import java.time.LocalDateTime;
+// import java.util.List;
+
+// @Data
+// @Builder
+// public class TicketResponse {
+//     private Long id;
+//     private Long reporterId;
+//     private String reporterName;
+//     private Long assigneeId;
+//     private String assigneeName;
+//     private String title;
+//     private String description;
+//     private String contactDetails;
+//     private TicketCategory category;
+//     private TicketPriority priority;
+//     private TicketStatus status;
+//     private List<String> images;
+//     private Long resourceId;
+//     private String resourceName;
+//     private Long bookingId;
+//     private boolean isOther;
+//     private String rejectionReason;
+//     private String internalNotes;
+//     private String resolutionExplanation;
+//     private LocalDateTime resolvedAt;
+//     private LocalDateTime createdAt;
+//     private Long responseTimeMinutes;
+// }
+
+
+package com.smart.Uni.dto.response;
+
+import com.smart.Uni.enums.TicketCategory;
+import com.smart.Uni.enums.TicketPriority;
+import com.smart.Uni.enums.TicketStatus;
+import lombok.Builder;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+@Builder
+public class TicketResponse {
+    private Long id;
+    private Long reporterId;
+    private String reporterName;
+
+    private Long assigneeId;
+    private String assigneeName; // display assigned technician name
+
+    private String title;
+    private String description;
+    private String contactDetails;
+
+    private TicketCategory category;
+    private TicketPriority priority;
+    private TicketStatus status;
+
+    private List<String> images;
+
+    private Long resourceId;
+    private String resourceName;
+    private Long bookingId;
+
+    private boolean isOther;
+
+    private String rejectionReason;
+    private String internalNotes;
+    private String resolutionExplanation;
+    private LocalDateTime resolvedAt;
+
+    private boolean resolutionViewed;
+    private boolean resolutionAcknowledged;
+    private LocalDateTime resolutionViewedAt;
+    private LocalDateTime resolutionAcknowledgedAt;
+
+    private LocalDateTime createdAt;
+    private Long responseTimeMinutes;
+}

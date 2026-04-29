@@ -31,6 +31,14 @@ public class BookingController {
                 ApiResponse.success("Booking created", bookingService.createBooking(request, userDetails.getUsername())));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<BookingResponse>> updateBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody BookingRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success("Booking updated", bookingService.updateBooking(id, request, userDetails.getUsername())));
+    }
+
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<BookingResponse>>> getMyBookings(
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -90,5 +98,13 @@ public class BookingController {
             @PathVariable Long resourceId,
             @PathVariable LocalDate date) {
         return ResponseEntity.ok(ApiResponse.success(bookingService.getBookingsByResourceAndDate(resourceId, date)));
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteBooking(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        bookingService.deleteBooking(id, userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Booking deleted successfully", null));
     }
 }

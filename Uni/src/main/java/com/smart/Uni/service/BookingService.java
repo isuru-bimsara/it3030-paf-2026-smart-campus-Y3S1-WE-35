@@ -1,6 +1,3 @@
-
-
-
 package com.smart.Uni.service;
 
 import com.smart.Uni.dto.request.BookingRequest;
@@ -58,6 +55,51 @@ public class BookingService {
         notificationService.notifyBookingPending(saved);
         return mapToResponse(saved);
 
+    }
+
+    @Transactional
+    public BookingResponse updateBooking(Long id, BookingRequest request, String username) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
+
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Only owner can update
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("You can only update your own bookings");
+        }
+
+        // Check if status is PENDING
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            if (booking.getStatus() == BookingStatus.APPROVED) {
+                throw new RuntimeException("Cannot update an approved booking");
+            } else {
+                throw new RuntimeException("Cannot update booking with status: " + booking.getStatus());
+            }
+        }
+
+        // Check conflicts (excluding current booking)
+        List<Booking> conflicts = bookingRepository.findConflictingBookingsExcludingId(
+                booking.getResource().getId(), 
+                request.getStartTime(), 
+                request.getEndTime(), 
+                id
+        );
+        if (!conflicts.isEmpty()) {
+            throw new BookingConflictException("Resource already booked for this time slot");
+        }
+
+        // Update fields
+        booking.setStartTime(request.getStartTime());
+        booking.setEndTime(request.getEndTime());
+        booking.setPurpose(request.getPurpose());
+
+        Booking saved = bookingRepository.save(booking);
+        // Maybe notify about update? The user didn't ask but it's good practice. 
+        // For now, let's keep it simple.
+        
+        return mapToResponse(saved);
     }
 
     public List<BookingResponse> getUserBookings(String username) {
@@ -169,5 +211,25 @@ public class BookingService {
                 .build();
     }
 
+    @Transactional
+    public void deleteBooking(Long id, String username) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
+
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Only owner can delete
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("You can only delete your own bookings");
+        }
+
+        // If manager approved, user cannot delete
+        if (booking.getStatus() == BookingStatus.APPROVED) {
+            throw new RuntimeException("Cannot delete an approved booking. Please contact manager to cancel.");
+        }
+
+        bookingRepository.delete(booking);
+    }
 
 }
